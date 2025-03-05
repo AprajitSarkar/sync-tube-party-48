@@ -87,15 +87,41 @@ const RoomParticipants = ({ roomId, currentUserId }: RoomParticipantsProps) => {
 
   const updateUserPresence = async () => {
     try {
-      const { error } = await supabase
+      // First check if the participant record exists
+      const { data, error: checkError } = await supabase
         .from('room_participants')
-        .upsert({
-          room_id: roomId,
-          user_id: currentUserId,
-          last_active: new Date().toISOString(),
-        });
-
-      if (error) throw error;
+        .select('user_id')
+        .eq('room_id', roomId)
+        .eq('user_id', currentUserId)
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+      
+      // If the record doesn't exist, insert it
+      if (!data) {
+        const { error: insertError } = await supabase
+          .from('room_participants')
+          .insert({
+            room_id: roomId,
+            user_id: currentUserId,
+            last_active: new Date().toISOString(),
+          });
+        
+        if (insertError) throw insertError;
+      } else {
+        // If the record exists, update it
+        const { error: updateError } = await supabase
+          .from('room_participants')
+          .update({
+            last_active: new Date().toISOString(),
+          })
+          .eq('room_id', roomId)
+          .eq('user_id', currentUserId);
+        
+        if (updateError) throw updateError;
+      }
     } catch (error) {
       console.error('Error updating presence:', error);
     }
