@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
-import { Maximize2, Play, Pause, Search, Link2 } from 'lucide-react';
+import { Maximize2, Play, Pause, Link2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ interface VideoState {
 }
 
 const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<YTPlayer | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoId, setVideoId] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -68,8 +68,8 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         schema: 'public',
         table: 'video_rooms',
         filter: `id=eq.${roomId}`,
-      }, (payload) => {
-        const videoState = payload.new.video_state as VideoState;
+      }, (payload: any) => {
+        const videoState = payload.new.video_state as VideoState | undefined;
         if (videoState) {
           handleRemoteStateChange(videoState);
         }
@@ -154,7 +154,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   };
 
   const createPlayer = (initialVideoId: string) => {
-    if (!initialVideoId) return;
+    if (!initialVideoId || !window.YT) return;
     
     playerRef.current = new window.YT.Player('youtube-player', {
       height: '100%',
@@ -177,12 +177,12 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     setIsLoading(false);
   };
 
-  const onPlayerStateChange = (event: any) => {
+  const onPlayerStateChange = (event: YTPlayerEvent) => {
     // Update local state
-    if (event.data === window.YT.PlayerState.PLAYING) {
+    if (event.data === window.YT?.PlayerState.PLAYING) {
       setIsPlaying(true);
       updateRoomState(true);
-    } else if (event.data === window.YT.PlayerState.PAUSED) {
+    } else if (event.data === window.YT?.PlayerState.PAUSED) {
       setIsPlaying(false);
       updateRoomState(false);
     }
