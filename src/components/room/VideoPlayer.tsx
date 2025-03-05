@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
-import { Maximize2, Play, Pause, Link2 } from 'lucide-react';
+import { Maximize2, Play, Pause, Link2, SkipForward, SkipBack } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -27,8 +27,12 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const syncIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Load YouTube IFrame API
@@ -56,6 +60,9 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       if (playerRef.current) {
         playerRef.current.destroy();
       }
+      if (syncIntervalRef.current) {
+        window.clearInterval(syncIntervalRef.current);
+      }
     };
   }, [videoId]);
 
@@ -69,7 +76,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         table: 'video_rooms',
         filter: `id=eq.${roomId}`,
       }, (payload: any) => {
-        const videoState = payload.new.video_state as VideoState | undefined;
+        const videoState = payload.new?.video_state as VideoState | undefined;
         if (videoState) {
           handleRemoteStateChange(videoState);
         }
@@ -79,10 +86,21 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     // Get initial room state
     fetchRoomState();
 
+    // Set up sync interval
+    syncIntervalRef.current = window.setInterval(() => {
+      if (playerRef.current && isPlaying) {
+        const time = playerRef.current.getCurrentTime();
+        setCurrentTime(time);
+      }
+    }, 1000);
+
     return () => {
       roomSubscription.unsubscribe();
+      if (syncIntervalRef.current) {
+        window.clearInterval(syncIntervalRef.current);
+      }
     };
-  }, [roomId]);
+  }, [roomId, isPlaying]);
 
   const fetchRoomState = async () => {
     try {
@@ -122,6 +140,8 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   };
 
   const handleRemoteStateChange = (videoState: VideoState) => {
+    console.log('Remote state change:', videoState);
+    
     // Update local state based on remote changes
     if (videoState.videoId && videoState.videoId !== videoId) {
       setVideoId(videoState.videoId);
@@ -143,11 +163,12 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     }
 
     // Handle time sync (with 3-second threshold to avoid constant seeking)
-    if (playerRef.current && videoState.currentTime) {
+    if (playerRef.current && videoState.currentTime !== undefined) {
       const currentTime = playerRef.current.getCurrentTime();
       const timeDiff = Math.abs(currentTime - videoState.currentTime);
       
       if (timeDiff > 3) {
+        console.log('Syncing time:', videoState.currentTime);
         playerRef.current.seekTo(videoState.currentTime);
       }
     }
@@ -220,6 +241,28 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     }
   };
 
+  const skipForward = () => {
+    if (!playerRef.current) return;
+    
+    const currentTime = playerRef.current.getCurrentTime();
+    const newTime = currentTime + 10;
+    playerRef.current.seekTo(newTime);
+    
+    // Update room state with new time
+    updateRoomState(isPlaying);
+  };
+
+  const skipBackward = () => {
+    if (!playerRef.current) return;
+    
+    const currentTime = playerRef.current.getCurrentTime();
+    const newTime = Math.max(0, currentTime - 10);
+    playerRef.current.seekTo(newTime);
+    
+    // Update room state with new time
+    updateRoomState(isPlaying);
+  };
+
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
 
@@ -247,18 +290,84 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     return null;
   };
 
-  const changeVideo = async () => {
-    const newVideoId = extractVideoId(urlInput);
-    
-    if (!newVideoId) {
+  const handleSearch = async () => {
+    if (!urlInput.trim()) {
       toast({
-        title: 'Invalid URL',
-        description: 'Please enter a valid YouTube URL or video ID',
+        title: 'Empty Search',
+        description: 'Please enter a search term or YouTube URL',
         variant: 'destructive'
       });
       return;
     }
+
+    const videoId = extractVideoId(urlInput);
     
+    if (videoId) {
+      // It's a URL, load directly
+      changeVideo(videoId);
+      return;
+    }
+    
+    // It's a search query
+    try {
+      setIsSearching(true);
+      setSearchResults([]);
+      
+      const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(urlInput)}`;
+      const response = await fetch(searchUrl);
+      const html = await response.text();
+      
+      // Extract video IDs from search results
+      const videoPattern = /\/watch\?v=([\w-]{11})/g;
+      const matches = html.matchAll(videoPattern);
+      const uniqueIds = [...new Set([...matches].map(match => match[1]))].slice(0, 5);
+      
+      // Get video details including titles
+      const results = await Promise.all(uniqueIds.map(async (id) => {
+        try {
+          const response = await fetch(`https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${id}&format=json`);
+          const data = await response.json();
+          return {
+            id,
+            url: `https://www.youtube.com/watch?v=${id}`,
+            title: data.title || 'Untitled Video'
+          };
+        } catch (error) {
+          return {
+            id,
+            url: `https://www.youtube.com/watch?v=${id}`,
+            title: 'Untitled Video'
+          };
+        }
+      }));
+      
+      setSearchResults(results);
+      
+      if (results.length === 0) {
+        toast({
+          title: 'No Results',
+          description: 'No videos found for your search query',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Error searching videos:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to search videos',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const loadSearchResult = (result: { id: string; title: string }) => {
+    changeVideo(result.id);
+    setSearchResults([]);
+  };
+
+  const changeVideo = async (newVideoId: string) => {
     try {
       setVideoId(newVideoId);
       
@@ -303,8 +412,18 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       </div>
       
       <div className="p-4 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex gap-2">
+            <CustomButton
+              size="icon"
+              variant="ghost"
+              onClick={skipBackward}
+              disabled={!isPlayerReady}
+              title="Skip back 10 seconds"
+            >
+              <SkipBack size={20} />
+            </CustomButton>
+            
             <CustomButton
               size="icon"
               variant="ghost"
@@ -317,32 +436,69 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
             <CustomButton
               size="icon"
               variant="ghost"
+              onClick={skipForward}
+              disabled={!isPlayerReady}
+              title="Skip forward 10 seconds"
+            >
+              <SkipForward size={20} />
+            </CustomButton>
+            
+            <CustomButton
+              size="icon"
+              variant="ghost"
               onClick={toggleFullscreen}
             >
               <Maximize2 size={20} />
             </CustomButton>
           </div>
           
-          <div className="flex-1 max-w-md mx-auto">
+          <div className="flex-1 max-w-md">
             <div className="flex gap-2">
               <Input
                 type="text"
-                placeholder="YouTube URL or video ID"
+                placeholder="YouTube URL or search term"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="h-10 bg-white/5 border-white/10"
               />
               <CustomButton
                 variant="glow"
                 size="sm"
-                onClick={changeVideo}
+                onClick={handleSearch}
+                isLoading={isSearching}
                 icon={<Link2 size={16} />}
               >
-                Load
+                Search
               </CustomButton>
             </div>
           </div>
         </div>
+        
+        {searchResults.length > 0 && (
+          <div className="bg-black/30 backdrop-blur-sm rounded-md p-3 max-h-60 overflow-y-auto">
+            <h3 className="text-sm font-medium mb-2">Search Results</h3>
+            <div className="space-y-2">
+              {searchResults.map((result) => (
+                <div 
+                  key={result.id}
+                  onClick={() => loadSearchResult(result)}
+                  className="flex items-center gap-2 p-2 hover:bg-white/10 rounded-md cursor-pointer transition-colors"
+                >
+                  <img 
+                    src={`https://i.ytimg.com/vi/${result.id}/default.jpg`}
+                    alt={result.title}
+                    className="w-16 h-12 object-cover rounded"
+                  />
+                  <div className="flex-1 truncate">
+                    <p className="text-sm font-medium truncate">{result.title}</p>
+                  </div>
+                  <Play size={16} className="text-muted-foreground" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </GlassCard>
   );
