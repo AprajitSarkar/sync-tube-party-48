@@ -1,8 +1,8 @@
+
 import React from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import { Play, Trash2 } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PlaylistItemProps {
   videoItem: {
@@ -17,8 +17,6 @@ interface PlaylistItemProps {
 }
 
 const PlaylistItem = ({ videoItem, index, isPlaying, onPlay, onRemove }: PlaylistItemProps) => {
-  const isMobile = useIsMobile();
-
   return (
     <Draggable draggableId={videoItem.id} index={index}>
       {(provided, snapshot) => (
@@ -41,63 +39,31 @@ const PlaylistItem = ({ videoItem, index, isPlaying, onPlay, onRemove }: Playlis
               }}
             />
           </div>
-          
-          {isMobile ? (
-            <div className="flex flex-1 items-center">
-              <div className="flex-1 min-w-0 mr-2">
-                <p className={`text-sm truncate ${isPlaying ? 'text-primary' : 'text-white'}`}>
-                  {videoItem.title}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <CustomButton
-                  size="sm"
-                  variant={isPlaying ? "outline" : "default"}
-                  onClick={() => onPlay(videoItem.videoId)}
-                  className={`h-8 ${isPlaying ? 'border-primary text-primary' : 'bg-primary/80 text-white'}`}
-                >
-                  <Play size={16} className="mr-1" />
-                  Play
-                </CustomButton>
-                <CustomButton
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => onRemove(videoItem.id)}
-                  className="h-8"
-                >
-                  <Trash2 size={16} />
-                </CustomButton>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm truncate ${isPlaying ? 'text-primary' : 'text-white'}`}>
-                  {videoItem.title}
-                </p>
-              </div>
-              <div className="flex gap-1">
-                <CustomButton
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => onPlay(videoItem.videoId)}
-                  className="h-7 w-7 text-white hover:bg-white/10"
-                  title="Play now"
-                >
-                  <Play size={14} className={isPlaying ? 'fill-primary/20' : ''} />
-                </CustomButton>
-                <CustomButton
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => onRemove(videoItem.id)}
-                  className="h-7 w-7 text-white hover:bg-white/10 hover:text-red-400"
-                  title="Remove from playlist"
-                >
-                  <Trash2 size={14} />
-                </CustomButton>
-              </div>
-            </>
-          )}
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm truncate ${isPlaying ? 'text-primary' : 'text-white'}`}>
+              {videoItem.title}
+            </p>
+          </div>
+          <div className="flex gap-1">
+            <CustomButton
+              size="icon"
+              variant="ghost"
+              onClick={() => onPlay(videoItem.videoId)}
+              className="h-7 w-7 text-white hover:bg-white/10"
+              title="Play now"
+            >
+              <Play size={14} className={isPlaying ? 'fill-primary/20' : ''} />
+            </CustomButton>
+            <CustomButton
+              size="icon"
+              variant="ghost"
+              onClick={() => onRemove(videoItem.id)}
+              className="h-7 w-7 text-white hover:bg-white/10 hover:text-red-400"
+              title="Remove from playlist"
+            >
+              <Trash2 size={14} />
+            </CustomButton>
+          </div>
         </div>
       )}
     </Draggable>
