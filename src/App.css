@@ -78,4 +78,52 @@
     background-color: rgba(236, 72, 153, 0.2);
     border-bottom: 2px solid #FF1493;
   }
+  
+  /* Prevent zooming on mobile */
+  html, body {
+    touch-action: pan-x pan-y;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+  
+  /* Full viewport height */
+  .min-h-screen {
+    min-height: 100vh;
+    height: 100vh;
+  }
+  
+  /* Fix for mobile layout */
+  .flex-1 {
+    min-height: 0;  /* Allow flex containers to shrink */
+  }
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.animate-fade-out {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+/* Prevent scrollbars on mobile */
+body {
+  overflow-x: hidden;
+}
+
+/* Fix for mobile keyboard issues */
+.input-wrap:focus-within {
+  position: relative;
+  z-index: 40;
 }
