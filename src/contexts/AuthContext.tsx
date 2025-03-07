@@ -1,9 +1,8 @@
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Session, User, Provider } from '@supabase/supabase-js';
+import { Session, User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   session: Session | null;
@@ -12,10 +11,6 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
-  updatePassword: (password: string) => Promise<void>;
-  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,7 +20,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Get session on initial load
@@ -91,106 +85,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signInWithGoogle = async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth`
-        }
-      });
-      
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/profile?passwordReset=true`,
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: "Password reset initiated",
-        description: "Check your email for the password reset link."
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updatePassword = async (password: string) => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.updateUser({ 
-        password 
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: "Password updated",
-        description: "Your password has been successfully changed."
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const deleteAccount = async () => {
-    try {
-      setIsLoading(true);
-      
-      // This is a simple implementation. In a production app, you'd want to:
-      // 1. Delete user data from other tables first
-      // 2. Possibly implement this on the server side for security
-      const { error } = await supabase.rpc('delete_user');
-      
-      if (error) throw error;
-      
-      await signOut();
-      
-      toast({
-        title: "Account deleted",
-        description: "Your account has been successfully deleted."
-      });
-      
-      navigate('/');
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete account",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const signOut = async () => {
     try {
       setIsLoading(true);
@@ -208,18 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      session, 
-      user, 
-      isLoading, 
-      signIn, 
-      signUp, 
-      signOut, 
-      signInWithGoogle, 
-      resetPassword, 
-      updatePassword, 
-      deleteAccount 
-    }}>
+    <AuthContext.Provider value={{ session, user, isLoading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
