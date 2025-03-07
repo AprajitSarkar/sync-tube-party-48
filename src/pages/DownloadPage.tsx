@@ -45,18 +45,18 @@ const DownloadPage = () => {
                     Download the SyncTube Party mobile app for a seamless experience on your smartphone or tablet.
                   </p>
                   <div className="mt-auto flex flex-col gap-4">
-                    <a href="https://play.google.com/store" target="_blank" rel="noopener noreferrer">
+                    <a href="https://play.google.com/store/apps/details?id=com.multiple.cozmo" target="_blank" rel="noopener noreferrer">
                       <CustomButton variant="glow" className="w-full">
                         <DownloadIcon size={18} />
                         Google Play Store
                       </CustomButton>
                     </a>
-                    <a href="https://apps.apple.com" target="_blank" rel="noopener noreferrer">
-                      <CustomButton variant="outline" className="w-full">
+                    <div className="w-full">
+                      <CustomButton variant="outline" className="w-full" disabled>
                         <DownloadIcon size={18} />
-                        Apple App Store
+                        Apple App Store (Coming Soon)
                       </CustomButton>
-                    </a>
+                    </div>
                   </div>
                 </div>
               </GlassCard>
