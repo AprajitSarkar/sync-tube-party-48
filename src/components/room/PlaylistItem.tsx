@@ -47,52 +47,27 @@ const PlaylistItem = ({ videoItem, index, isPlaying, onPlay, onRemove }: Playlis
               {videoItem.title}
             </p>
           </div>
-          <div className="flex gap-1">
-            {isMobile ? (
-              <div className="flex gap-2 w-full justify-end">
-                <CustomButton
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onPlay(videoItem.videoId)}
-                  className="text-white hover:bg-white/10 h-8 px-2 py-0"
-                  title="Play now"
-                >
-                  <Play size={14} className={isPlaying ? 'fill-primary/20' : ''} />
-                  <span className="ml-1">Play</span>
-                </CustomButton>
-                <CustomButton
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onRemove(videoItem.id)}
-                  className="text-white hover:bg-white/10 hover:text-red-400 h-8 px-2 py-0"
-                  title="Remove from playlist"
-                >
-                  <Trash2 size={14} />
-                  <span className="ml-1">Remove</span>
-                </CustomButton>
-              </div>
-            ) : (
-              <>
-                <CustomButton
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => onPlay(videoItem.videoId)}
-                  className="h-7 w-7 text-white hover:bg-white/10"
-                  title="Play now"
-                >
-                  <Play size={14} className={isPlaying ? 'fill-primary/20' : ''} />
-                </CustomButton>
-                <CustomButton
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => onRemove(videoItem.id)}
-                  className="h-7 w-7 text-white hover:bg-white/10 hover:text-red-400"
-                  title="Remove from playlist"
-                >
-                  <Trash2 size={14} />
-                </CustomButton>
-              </>
-            )}
+          <div className="flex gap-2">
+            <CustomButton
+              size="sm"
+              variant="outline"
+              onClick={() => onPlay(videoItem.videoId)}
+              className="text-white hover:bg-white/10 h-8 px-2 py-0"
+              title="Play now"
+            >
+              <Play size={14} className={isPlaying ? 'fill-primary/20' : ''} />
+              <span className="ml-1">Play</span>
+            </CustomButton>
+            <CustomButton
+              size="sm"
+              variant="outline"
+              onClick={() => onRemove(videoItem.id)}
+              className="text-white hover:bg-white/10 hover:text-red-400 h-8 px-2 py-0"
+              title="Remove from playlist"
+            >
+              <Trash2 size={14} />
+              <span className="ml-1">Remove</span>
+            </CustomButton>
           </div>
         </div>
       )}
