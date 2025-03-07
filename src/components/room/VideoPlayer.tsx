@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -21,7 +20,7 @@ interface VideoState {
 }
 
 const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
-  const playerRef = useRef<YTPlayer | null>(null);
+  const playerRef = useRef<YT.Player | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoId, setVideoId] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -294,7 +293,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     }
   };
 
-  const onPlayerReady = (event: YTPlayerEvent) => {
+  const onPlayerReady = (event: YT.PlayerEvent) => {
     console.log('Player is ready');
     setIsPlayerReady(true);
     setIsLoading(false);
@@ -317,7 +316,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     }
   };
 
-  const onPlayerStateChange = (event: YTPlayerEvent) => {
+  const onPlayerStateChange = (event: YT.PlayerEvent) => {
     console.log('Player state changed:', event.data);
     
     // Only update state if this wasn't triggered by a remote update
