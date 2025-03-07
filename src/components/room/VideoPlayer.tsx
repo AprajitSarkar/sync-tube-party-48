@@ -38,7 +38,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   const remoteUpdateRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
 
-  // Load YouTube API once
   useEffect(() => {
     const loadYouTubeAPI = () => {
       if (!window.YT && !apiLoadedRef.current) {
@@ -72,7 +71,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     };
   }, []);
 
-  // Handle video ID changes
   useEffect(() => {
     if (videoId) {
       console.log('Video ID changed to:', videoId);
@@ -92,7 +90,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     }
   }, [videoId]);
 
-  // Set up room state subscription and sync interval
   useEffect(() => {
     const roomSubscription = supabase
       .channel(`room:${roomId}`)
@@ -111,18 +108,15 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
 
     fetchRoomState();
 
-    // More frequent sync interval for better synchronization
     syncIntervalRef.current = window.setInterval(() => {
       try {
         if (playerRef.current && isPlayerReady) {
           const now = Date.now();
-          // Only sync every 3 seconds to avoid flooding
           if (now - lastSyncTimeRef.current > 3000) {
             lastSyncTimeRef.current = now;
             const currentPlayerTime = playerRef.current.getCurrentTime();
             setCurrentTime(currentPlayerTime);
           
-            // Check if we should send a sync update
             if (isPlaying && !remoteUpdateRef.current) {
               updateRoomState(true, currentPlayerTime);
             }
@@ -141,7 +135,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     };
   }, [roomId, isPlaying, isPlayerReady]);
 
-  // Set up fullscreen change detection
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -171,7 +164,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
           console.log('Fetched video ID from room state:', videoState.videoId);
           setVideoId(videoState.videoId);
           setIsPlaying(videoState.isPlaying);
-          // Store the initial time to seek to once player is ready
           if (videoState.currentTime > 0) {
             setCurrentTime(videoState.currentTime);
           }
@@ -194,12 +186,10 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     remoteUpdateRef.current = true;
     
     try {
-      // If this is a new video, load it
       if (videoState.videoId && videoState.videoId !== videoId) {
         setVideoId(videoState.videoId);
       }
 
-      // Handle play/pause state changes
       if (videoState.isPlaying !== isPlaying) {
         setIsPlaying(videoState.isPlaying);
         if (playerRef.current && isPlayerReady) {
@@ -211,12 +201,10 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         }
       }
 
-      // Handle time synchronization
       if (playerRef.current && isPlayerReady && videoState.currentTime !== undefined) {
         const currentPlayerTime = playerRef.current.getCurrentTime();
         const timeDiff = Math.abs(currentPlayerTime - videoState.currentTime);
         
-        // If the time difference is more than 3 seconds, sync
         if (timeDiff > 3) {
           console.log(`Syncing time: ${videoState.currentTime}s (diff: ${timeDiff}s)`);
           playerRef.current.seekTo(videoState.currentTime, true);
@@ -225,7 +213,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     } catch (error) {
       console.error('Error handling remote state change:', error);
     } finally {
-      // Reset the remote update flag after a short delay
       setTimeout(() => {
         remoteUpdateRef.current = false;
       }, 1000);
@@ -251,12 +238,10 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         return;
       }
       
-      // Clear the container first
       while (playerContainerRef.current.firstChild) {
         playerContainerRef.current.removeChild(playerContainerRef.current.firstChild);
       }
       
-      // Create a div element for the player
       const playerDiv = document.createElement('div');
       playerDiv.id = 'youtube-player';
       playerContainerRef.current.appendChild(playerDiv);
@@ -302,7 +287,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       const videoData = event.target.getVideoData();
       console.log('Current video data:', videoData);
       
-      // Apply stored state if needed
       if (currentTime > 0) {
         console.log(`Seeking to saved time: ${currentTime}s`);
         event.target.seekTo(currentTime, true);
@@ -319,7 +303,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   const onPlayerStateChange = (event: YT.PlayerEvent) => {
     console.log('Player state changed:', event.data);
     
-    // Only update state if this wasn't triggered by a remote update
     if (!remoteUpdateRef.current) {
       if (event.data === window.YT?.PlayerState.PLAYING) {
         setIsPlaying(true);
@@ -395,7 +378,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       const newTime = currentPlayerTime + 10;
       playerRef.current.seekTo(newTime, true);
       
-      // Update room state immediately for better sync
       updateRoomState(isPlaying, newTime);
     } catch (error) {
       console.error('Error skipping forward:', error);
@@ -410,7 +392,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       const newTime = Math.max(0, currentPlayerTime - 10);
       playerRef.current.seekTo(newTime, true);
       
-      // Update room state immediately for better sync
       updateRoomState(isPlaying, newTime);
     } catch (error) {
       console.error('Error skipping backward:', error);
@@ -579,8 +560,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     });
   };
 
-  // Set initial fallback video if none is present
-  const defaultVideoId = '9bZkp7q19f0'; // Gangnam Style as a fallback
+  const defaultVideoId = '9bZkp7q19f0';
   useEffect(() => {
     if (!videoId && !pendingVideoIdRef.current) {
       console.log('No video ID found, using default:', defaultVideoId);
