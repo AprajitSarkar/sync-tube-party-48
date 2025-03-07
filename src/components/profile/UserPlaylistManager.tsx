@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -282,72 +283,6 @@ const UserPlaylistManager = () => {
       )}
     </div>
   );
-};
-
-const deletePlaylist = async (id: string) => {
-  try {
-    const { error } = await supabase
-      .from('user_playlists')
-      .delete()
-      .eq('id', id);
-      
-    if (error) throw error;
-    
-    setPlaylists(playlists.filter(playlist => playlist.id !== id));
-    
-    toast({
-      title: 'Success',
-      description: 'Playlist deleted successfully',
-    });
-  } catch (error) {
-    console.error('Error deleting playlist:', error);
-    toast({
-      title: 'Error',
-      description: 'Failed to delete playlist',
-      variant: 'destructive'
-    });
-  }
-};
-
-const startEditingPlaylist = (playlist: Playlist) => {
-  setEditingPlaylist(playlist.id);
-  setEditName(playlist.name);
-};
-
-const cancelEditingPlaylist = () => {
-  setEditingPlaylist(null);
-  setEditName('');
-};
-
-const updatePlaylistName = async (id: string) => {
-  if (!editName.trim()) return;
-  
-  try {
-    const { error } = await supabase
-      .from('user_playlists')
-      .update({ name: editName.trim() })
-      .eq('id', id);
-      
-    if (error) throw error;
-    
-    setPlaylists(playlists.map(playlist => 
-      playlist.id === id ? { ...playlist, name: editName.trim() } : playlist
-    ));
-    
-    cancelEditingPlaylist();
-    
-    toast({
-      title: 'Success',
-      description: 'Playlist name updated successfully',
-    });
-  } catch (error) {
-    console.error('Error updating playlist:', error);
-    toast({
-      title: 'Error',
-      description: 'Failed to update playlist name',
-      variant: 'destructive'
-    });
-  }
 };
 
 export default UserPlaylistManager;
