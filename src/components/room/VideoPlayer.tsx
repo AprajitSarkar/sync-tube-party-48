@@ -1,8 +1,7 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
-import { Maximize2, Play, Pause, Link2, SkipForward, SkipBack } from 'lucide-react';
+import { Maximize2, Play, Pause, Link2, SkipForward, SkipBack, Share2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -35,15 +34,21 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   const syncIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Load YouTube IFrame API
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-    }
+    const loadYouTubeAPI = () => {
+      if (!window.YT) {
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        if (firstScriptTag && firstScriptTag.parentNode) {
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        } else {
+          document.head.appendChild(tag);
+        }
+      }
+    };
+    
+    loadYouTubeAPI();
 
-    // Initialize player when API is ready
     const onYouTubeIframeAPIReady = () => {
       if (!playerRef.current && videoId) {
         createPlayer(videoId);
@@ -67,7 +72,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   }, [videoId]);
 
   useEffect(() => {
-    // Subscribe to room updates
     const roomSubscription = supabase
       .channel(`room:${roomId}`)
       .on('postgres_changes', {
@@ -83,10 +87,8 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       })
       .subscribe();
 
-    // Get initial room state
     fetchRoomState();
 
-    // Set up sync interval
     syncIntervalRef.current = window.setInterval(() => {
       if (playerRef.current && isPlaying) {
         const time = playerRef.current.getCurrentTime();
@@ -142,7 +144,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   const handleRemoteStateChange = (videoState: VideoState) => {
     console.log('Remote state change:', videoState);
     
-    // Update local state based on remote changes
     if (videoState.videoId && videoState.videoId !== videoId) {
       setVideoId(videoState.videoId);
       if (playerRef.current) {
@@ -150,7 +151,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       }
     }
 
-    // Handle play/pause state
     if (videoState.isPlaying !== isPlaying) {
       setIsPlaying(videoState.isPlaying);
       if (playerRef.current) {
@@ -162,7 +162,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       }
     }
 
-    // Handle time sync (with 3-second threshold to avoid constant seeking)
     if (playerRef.current && videoState.currentTime !== undefined) {
       const currentTime = playerRef.current.getCurrentTime();
       const timeDiff = Math.abs(currentTime - videoState.currentTime);
@@ -177,20 +176,44 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   const createPlayer = (initialVideoId: string) => {
     if (!initialVideoId || !window.YT) return;
     
-    playerRef.current = new window.YT.Player('youtube-player', {
-      height: '100%',
-      width: '100%',
-      videoId: initialVideoId,
-      playerVars: {
-        playsinline: 1,
-        modestbranding: 1,
-        rel: 0,
-      },
-      events: {
-        onReady: onPlayerReady,
-        onStateChange: onPlayerStateChange,
-      },
-    });
+    try {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+      
+      if (!document.getElementById('youtube-player')) {
+        console.error('YouTube player container not found');
+        return;
+      }
+      
+      playerRef.current = new window.YT.Player('youtube-player', {
+        height: '100%',
+        width: '100%',
+        videoId: initialVideoId,
+        playerVars: {
+          playsinline: 1,
+          modestbranding: 1,
+          rel: 0,
+          enablejsapi: 1,
+        },
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onPlayerStateChange,
+          onError: (event) => {
+            console.error('YouTube player error:', event.data);
+            setIsLoading(false);
+            toast({
+              title: 'Error',
+              description: 'Failed to load video. Please try another one.',
+              variant: 'destructive'
+            });
+          }
+        },
+      });
+    } catch (error) {
+      console.error('Error creating YouTube player:', error);
+      setIsLoading(false);
+    }
   };
 
   const onPlayerReady = () => {
@@ -199,7 +222,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   };
 
   const onPlayerStateChange = (event: YTPlayerEvent) => {
-    // Update local state
     if (event.data === window.YT?.PlayerState.PLAYING) {
       setIsPlaying(true);
       updateRoomState(true);
@@ -248,7 +270,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     const newTime = currentTime + 10;
     playerRef.current.seekTo(newTime);
     
-    // Update room state with new time
     updateRoomState(isPlaying);
   };
 
@@ -259,7 +280,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     const newTime = Math.max(0, currentTime - 10);
     playerRef.current.seekTo(newTime);
     
-    // Update room state with new time
     updateRoomState(isPlaying);
   };
 
@@ -280,11 +300,9 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   };
 
   const extractVideoId = (url: string): string | null => {
-    // Handle standard YouTube URLs
     const standardMatch = url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (standardMatch) return standardMatch[1];
     
-    // Handle direct video ID input (if it's exactly 11 chars)
     if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
     
     return null;
@@ -303,12 +321,10 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     const videoId = extractVideoId(urlInput);
     
     if (videoId) {
-      // It's a URL, load directly
       changeVideo(videoId);
       return;
     }
     
-    // It's a search query
     try {
       setIsSearching(true);
       setSearchResults([]);
@@ -317,12 +333,10 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       const response = await fetch(searchUrl);
       const html = await response.text();
       
-      // Extract video IDs from search results
       const videoPattern = /\/watch\?v=([\w-]{11})/g;
       const matches = html.matchAll(videoPattern);
       const uniqueIds = [...new Set([...matches].map(match => match[1]))].slice(0, 5);
       
-      // Get video details including titles
       const results = await Promise.all(uniqueIds.map(async (id) => {
         try {
           const response = await fetch(`https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${id}&format=json`);
@@ -371,7 +385,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     try {
       setVideoId(newVideoId);
       
-      // Update room with new video
       await supabase
         .from('video_rooms')
         .update({
@@ -398,6 +411,39 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         variant: 'destructive'
       });
     }
+  };
+
+  const shareRoom = () => {
+    const shareUrl = `${window.location.origin}/room/${roomId}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Join my Sync Tube Party room',
+        text: 'Watch YouTube videos together!',
+        url: shareUrl,
+      }).catch(error => {
+        console.error('Error sharing:', error);
+        copyToClipboard(shareUrl);
+      });
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  };
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: 'Room link copied',
+        description: 'Share this link with friends to invite them',
+      });
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+      toast({
+        title: 'Failed to copy',
+        description: 'Please manually copy the URL from your browser',
+        variant: 'destructive'
+      });
+    });
   };
 
   return (
@@ -449,6 +495,15 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
               onClick={toggleFullscreen}
             >
               <Maximize2 size={20} />
+            </CustomButton>
+            
+            <CustomButton
+              size="icon"
+              variant="ghost"
+              onClick={shareRoom}
+              title="Share room"
+            >
+              <Share2 size={20} />
             </CustomButton>
           </div>
           

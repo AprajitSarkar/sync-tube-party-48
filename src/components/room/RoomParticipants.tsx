@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -135,18 +134,31 @@ const RoomParticipants = ({ roomId, currentUserId }: RoomParticipantsProps) => {
         title: 'Join my Sync Tube Party room',
         text: 'Watch YouTube videos together!',
         url: shareUrl,
+      }).catch(error => {
+        console.error('Error sharing:', error);
+        copyToClipboard(shareUrl);
       });
     } else {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        toast({
-          title: 'Room link copied',
-          description: 'Share this link with friends to invite them',
-        });
-      });
+      copyToClipboard(shareUrl);
     }
   };
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: 'Room link copied',
+        description: 'Share this link with friends to invite them',
+      });
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+      toast({
+        title: 'Failed to copy',
+        description: 'Please manually copy the URL from your browser',
+        variant: 'destructive'
+      });
+    });
+  };
 
-  // Detect if a user is active (less than 2 minutes ago)
   const isUserActive = (lastActive: string) => {
     const twoMinutesAgo = new Date();
     twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
@@ -155,50 +167,66 @@ const RoomParticipants = ({ roomId, currentUserId }: RoomParticipantsProps) => {
 
   return (
     <GlassCard>
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="font-medium">Room Participants</h3>
-        <CustomButton 
-          size="sm" 
-          variant="outline"
-          onClick={shareRoom}
-          icon={<Share2 size={16} />}
-        >
-          Share
-        </CustomButton>
-      </div>
-      
-      {isLoading ? (
-        <div className="flex justify-center py-4">
-          <LoadingSpinner />
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h3 className="font-medium">Room Participants</h3>
+          <CustomButton 
+            size="sm" 
+            variant="outline"
+            onClick={shareRoom}
+            icon={<Share2 size={16} />}
+          >
+            Share
+          </CustomButton>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {participants.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No participants yet</p>
-          ) : (
-            participants.map((participant) => (
-              <div key={participant.id} className="flex items-center gap-3">
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback>
-                    {participant.email[0]?.toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{participant.email}</p>
-                </div>
-                {participant.id === currentUserId && (
-                  <Badge variant="outline" className="ml-2">You</Badge>
-                )}
-                <div className="w-2 h-2 rounded-full bg-green-500 ml-1">
-                  {isUserActive(participant.last_active) && (
-                    <div className="absolute w-2 h-2 rounded-full bg-green-500 animate-ping" />
+        
+        <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+          <p className="text-sm">Invite friends to join this room and watch together!</p>
+          <CustomButton 
+            variant="glow" 
+            size="sm" 
+            onClick={shareRoom} 
+            className="w-full mt-2"
+            icon={<Share2 size={16} />}
+          >
+            Share Room Link
+          </CustomButton>
+        </div>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <LoadingSpinner />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-muted-foreground">Active Users ({participants.length})</h4>
+            {participants.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No participants yet</p>
+            ) : (
+              participants.map((participant) => (
+                <div key={participant.id} className="flex items-center gap-3">
+                  <Avatar className="w-8 h-8">
+                    <AvatarFallback>
+                      {participant.email[0]?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate">{participant.email}</p>
+                  </div>
+                  {participant.id === currentUserId && (
+                    <Badge variant="outline" className="ml-2">You</Badge>
                   )}
+                  <div className="w-2 h-2 rounded-full bg-green-500 ml-1">
+                    {isUserActive(participant.last_active) && (
+                      <div className="absolute w-2 h-2 rounded-full bg-green-500 animate-ping" />
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+              ))
+            )}
+          </div>
+        )}
+      </div>
     </GlassCard>
   );
 };
