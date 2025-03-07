@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Draggable } from 'react-beautiful-dnd';
-import { Play, Trash2, Plus, Heart } from 'lucide-react';
+import { Play, Trash2, Plus } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 
 interface PlaylistItemProps {
@@ -49,21 +49,21 @@ const PlaylistItem = ({
               />
             </div>
             
-            <div className="flex flex-1 items-center justify-between min-w-0 gap-2">
-              <p className={`text-xs truncate ${isPlaying ? 'text-primary' : 'text-white'}`}>
+            <div className="flex flex-col flex-1 min-w-0">
+              <p className={`text-xs truncate mb-1 ${isPlaying ? 'text-primary' : 'text-white'}`}>
                 {videoItem.title}
               </p>
               
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center gap-1">
                 <CustomButton
                   size="sm"
                   variant="ghost"
                   onClick={() => onPlay(videoItem.videoId)}
-                  className="h-6 px-2 text-[11px] text-white hover:bg-white/10"
+                  className="h-5 px-1.5 text-[10px] text-white hover:bg-white/10 min-w-0"
                   title="Play now"
                 >
-                  <Play size={12} className={isPlaying ? 'fill-primary/20' : ''} />
-                  <span className="ml-1">Play</span>
+                  <Play size={10} className={isPlaying ? 'fill-primary/20' : ''} />
+                  <span className="ml-0.5">Play</span>
                 </CustomButton>
                 
                 {onAddToUserPlaylist && (
@@ -71,11 +71,11 @@ const PlaylistItem = ({
                     size="sm"
                     variant="ghost"
                     onClick={() => onAddToUserPlaylist(videoItem.videoId, videoItem.title)}
-                    className="h-6 px-2 text-[11px] text-white hover:bg-white/10"
+                    className="h-5 px-1.5 text-[10px] text-white hover:bg-white/10 min-w-0"
                     title="Add to my playlist"
                   >
-                    <Plus size={12} />
-                    <span className="ml-1">Save</span>
+                    <Plus size={10} />
+                    <span className="ml-0.5">Save</span>
                   </CustomButton>
                 )}
                 
@@ -83,11 +83,11 @@ const PlaylistItem = ({
                   size="sm"
                   variant="ghost"
                   onClick={() => onRemove(videoItem.id)}
-                  className="h-6 px-2 text-[11px] text-white hover:bg-white/10 hover:text-red-400"
+                  className="h-5 px-1.5 text-[10px] text-white hover:bg-white/10 hover:text-red-400 min-w-0"
                   title="Remove from playlist"
                 >
-                  <Trash2 size={12} />
-                  <span className="ml-1">Remove</span>
+                  <Trash2 size={10} />
+                  <span className="ml-0.5">Remove</span>
                 </CustomButton>
               </div>
             </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import PlaylistEditor from './PlaylistEditor';
 
 interface Playlist {
   id: string;
@@ -26,6 +26,8 @@ const UserPlaylistManager = () => {
   const [editName, setEditName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const isMobile = useIsMobile();
+
+  const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPlaylists();
@@ -239,7 +241,17 @@ const UserPlaylistManager = () => {
                 
                 {editingPlaylist !== playlist.id && (
                   <div className={`flex gap-2 ${isMobile ? 'mt-3 w-full justify-center' : ''}`}>
-                    <Button size={isMobile ? "sm" : "icon"} variant="ghost" onClick={() => startEditingPlaylist(playlist)}>
+                    <Button 
+                      size={isMobile ? "sm" : "icon"} 
+                      variant="ghost" 
+                      onClick={() => {
+                        if (selectedPlaylist === playlist.id) {
+                          setSelectedPlaylist(null);
+                        } else {
+                          setSelectedPlaylist(playlist.id);
+                        }
+                      }}
+                    >
                       {isMobile ? (
                         <>
                           <Edit size={16} className="mr-2" />
@@ -249,7 +261,11 @@ const UserPlaylistManager = () => {
                         <Edit size={16} />
                       )}
                     </Button>
-                    <Button size={isMobile ? "sm" : "icon"} variant="ghost" className="text-muted-foreground hover:text-foreground">
+                    <Button 
+                      size={isMobile ? "sm" : "icon"} 
+                      variant="ghost" 
+                      onClick={() => startEditingPlaylist(playlist)}
+                    >
                       {isMobile ? (
                         <>
                           <Eye size={16} className="mr-2" />
@@ -277,6 +293,15 @@ const UserPlaylistManager = () => {
                   </div>
                 )}
               </div>
+              
+              {selectedPlaylist === playlist.id && (
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <PlaylistEditor 
+                    playlistId={playlist.id} 
+                    onVideoAdded={fetchPlaylists}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>
