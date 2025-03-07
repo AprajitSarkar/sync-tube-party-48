@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -39,6 +38,8 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
   const [newNames, setNewNames] = useState<{[key: string]: string}>({});
   const [logMessage, setLogMessage] = useState('');
   const [logVisible, setLogVisible] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('');
+  const [isAddingVideo, setIsAddingVideo] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -62,7 +63,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
       setIsLoading(true);
       showLog("Loading your playlists...");
 
-      // First get all playlist names for the user
       const { data: playlistsData, error: playlistsError } = await supabase
         .from('user_playlists')
         .select('playlist_name')
@@ -74,7 +74,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
       const uniquePlaylistNames = [...new Set(playlistsData?.map(p => p.playlist_name) || [])];
       setPlaylistNames(uniquePlaylistNames);
 
-      // Then fetch all playlist items
       const { data: itemsData, error: itemsError } = await supabase
         .from('user_playlist_items')
         .select('*')
@@ -83,7 +82,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
 
       if (itemsError) throw itemsError;
 
-      // Group by playlist name
       const groupedPlaylists: {[key: string]: PlaylistItem[]} = {};
       uniquePlaylistNames.forEach(name => {
         groupedPlaylists[name] = (itemsData || [])
@@ -93,7 +91,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
 
       setUserPlaylists(groupedPlaylists);
       
-      // Set the active playlist to the first one if there are any
       if (uniquePlaylistNames.length > 0 && !activePlaylist) {
         setActivePlaylist(uniquePlaylistNames[0]);
       }
@@ -118,7 +115,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
     try {
       showLog("Creating playlist...");
       
-      // Check if playlist name already exists
       if (playlistNames.includes(newPlaylistName.trim())) {
         toast({
           title: 'Playlist exists',
@@ -137,14 +133,12 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
         
       if (error) throw error;
       
-      // Update the list of playlists
       setPlaylistNames(prev => [newPlaylistName.trim(), ...prev]);
       setUserPlaylists(prev => ({
         ...prev,
         [newPlaylistName.trim()]: []
       }));
       
-      // Set as active playlist
       setActivePlaylist(newPlaylistName.trim());
       setNewPlaylistName('');
       setIsCreatingPlaylist(false);
@@ -176,7 +170,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
     try {
       showLog("Renaming playlist...");
       
-      // Check if new name already exists
       if (playlistNames.includes(newNames[oldName].trim()) && newNames[oldName].trim() !== oldName) {
         toast({
           title: 'Playlist exists',
@@ -186,7 +179,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
         return;
       }
       
-      // Update playlist name in user_playlists table
       const { error: playlistsError } = await supabase
         .from('user_playlists')
         .update({ playlist_name: newNames[oldName].trim() })
@@ -195,7 +187,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
         
       if (playlistsError) throw playlistsError;
       
-      // Update playlist name in user_playlist_items table
       const { error: itemsError } = await supabase
         .from('user_playlist_items')
         .update({ playlist_name: newNames[oldName].trim() })
@@ -204,10 +195,8 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
         
       if (itemsError) throw itemsError;
       
-      // Update local state
       setPlaylistNames(prev => prev.map(name => name === oldName ? newNames[oldName].trim() : name));
       
-      // Update userPlaylists
       setUserPlaylists(prev => {
         const updated = { ...prev };
         updated[newNames[oldName].trim()] = updated[oldName];
@@ -215,12 +204,10 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
         return updated;
       });
       
-      // Update active playlist if needed
       if (activePlaylist === oldName) {
         setActivePlaylist(newNames[oldName].trim());
       }
       
-      // Reset renaming state
       setIsRenaming(prev => ({ ...prev, [oldName]: false }));
       
       showLog("Playlist renamed");
@@ -245,7 +232,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
     try {
       showLog("Deleting playlist...");
       
-      // Delete from user_playlists table
       const { error: playlistsError } = await supabase
         .from('user_playlists')
         .delete()
@@ -254,7 +240,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
         
       if (playlistsError) throw playlistsError;
       
-      // Delete from user_playlist_items table
       const { error: itemsError } = await supabase
         .from('user_playlist_items')
         .delete()
@@ -263,7 +248,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
         
       if (itemsError) throw itemsError;
       
-      // Update local state
       setPlaylistNames(prev => prev.filter(n => n !== name));
       
       setUserPlaylists(prev => {
@@ -272,7 +256,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
         return updated;
       });
       
-      // Update active playlist if needed
       if (activePlaylist === name) {
         setActivePlaylist(playlistNames.filter(n => n !== name)[0] || null);
       }
@@ -299,7 +282,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
     try {
       showLog("Removing video...");
       
-      // Delete the item
       const { error } = await supabase
         .from('user_playlist_items')
         .delete()
@@ -307,7 +289,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
         
       if (error) throw error;
       
-      // Update the positions of remaining items
       const updatedItems = userPlaylists[playlistName].filter(item => item.id !== itemId);
       
       updatedItems.forEach(async (item, index) => {
@@ -317,7 +298,6 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
           .eq('id', item.id);
       });
       
-      // Update local state
       setUserPlaylists(prev => ({
         ...prev,
         [playlistName]: updatedItems
@@ -344,6 +324,83 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
     showLog("Added to room playlist");
   };
 
+  const handleAddVideo = async () => {
+    if (!user || !activePlaylist) return;
+    
+    try {
+      showLog("Adding video...");
+      
+      const videoIdMatch = videoUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+      const videoId = videoIdMatch?.[1];
+      
+      if (!videoId) {
+        toast({
+          title: 'Invalid URL',
+          description: 'Please enter a valid YouTube video URL',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      const videoDetails = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${import.meta.env.VITE_YOUTUBE_API_KEY}`);
+      const data = await videoDetails.json();
+      
+      if (!data.items?.[0]) {
+        toast({
+          title: 'Video not found',
+          description: 'Could not find video details',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      const videoTitle = data.items[0].snippet.title;
+      
+      const { error } = await supabase
+        .from('user_playlist_items')
+        .insert({
+          user_id: user.id,
+          playlist_name: activePlaylist,
+          video_id: videoId,
+          title: videoTitle,
+          position: userPlaylists[activePlaylist]?.length || 0
+        });
+        
+      if (error) throw error;
+      
+      setUserPlaylists(prev => ({
+        ...prev,
+        [activePlaylist]: [
+          ...prev[activePlaylist],
+          {
+            id: crypto.randomUUID(),
+            video_id: videoId,
+            title: videoTitle,
+            position: prev[activePlaylist].length,
+            playlist_name: activePlaylist
+          }
+        ]
+      }));
+      
+      setVideoUrl('');
+      setIsAddingVideo(false);
+      
+      showLog("Video added");
+      toast({
+        title: 'Success',
+        description: 'Video added to playlist',
+      });
+    } catch (error) {
+      console.error('Error adding video:', error);
+      showLog("Failed to add video");
+      toast({
+        title: 'Error',
+        description: 'Failed to add video to playlist',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return (
     <>
       <LogToast 
@@ -359,16 +416,49 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
             <ListMusic size={18} />
             <h3 className="font-medium">My Playlists</h3>
           </div>
-          <CustomButton
-            size="icon"
-            variant="ghost"
-            onClick={() => setIsCreatingPlaylist(!isCreatingPlaylist)}
-            className="h-8 w-8"
-            title="Create new playlist"
-          >
-            {isCreatingPlaylist ? <X size={16} /> : <Plus size={16} />}
-          </CustomButton>
+          <div className="flex gap-2">
+            <CustomButton
+              size="icon"
+              variant="ghost"
+              onClick={() => setIsAddingVideo(!isAddingVideo)}
+              className="h-8 w-8"
+              title="Add video"
+            >
+              {isAddingVideo ? <X size={16} /> : <Plus size={16} />}
+            </CustomButton>
+            <CustomButton
+              size="icon"
+              variant="ghost"
+              onClick={() => setIsCreatingPlaylist(!isCreatingPlaylist)}
+              className="h-8 w-8"
+              title="Create new playlist"
+            >
+              {isCreatingPlaylist ? <X size={16} /> : <FolderPlus size={16} />}
+            </CustomButton>
+          </div>
         </div>
+        
+        {isAddingVideo && activePlaylist && (
+          <div className="p-3 border-b border-white/10">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Paste YouTube video URL..."
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                className="h-9 bg-white/5 border-white/10"
+                autoFocus
+              />
+              <CustomButton
+                size="sm"
+                variant="glow"
+                onClick={handleAddVideo}
+                disabled={!videoUrl.trim()}
+              >
+                <Plus size={16} />
+              </CustomButton>
+            </div>
+          </div>
+        )}
         
         {isCreatingPlaylist && (
           <div className="p-3 border-b border-white/10">
