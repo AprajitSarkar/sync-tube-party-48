@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { CustomButton } from '@/components/ui/custom-button';
 import { AlertCircle, Save, Key } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type YouTubeApiSettingsProps = {
   userId: string | undefined;
@@ -14,6 +15,7 @@ const YouTubeApiSettings: React.FC<YouTubeApiSettingsProps> = ({ userId }) => {
   const [savedKey, setSavedKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Load saved API key from localStorage on component mount
   useEffect(() => {
@@ -54,12 +56,12 @@ const YouTubeApiSettings: React.FC<YouTubeApiSettingsProps> = ({ userId }) => {
 
   return (
     <div className="rounded-lg p-5 space-y-4">
-      <div className="flex items-start gap-4">
+      <div className={`flex ${isMobile ? 'flex-col items-center' : 'items-start'} gap-4`}>
         <div className="flex-shrink-0 w-12 h-12 rounded-full glass-effect flex items-center justify-center">
           <Key className="text-muted-foreground" size={24} />
         </div>
         
-        <div className="flex-grow">
+        <div className={`flex-grow ${isMobile ? 'w-full text-center' : ''}`}>
           <h3 className="text-xl font-semibold text-enhanced mb-2">YouTube API Key</h3>
           <p className="text-muted-foreground mb-4">
             Add your YouTube Data API key to enable advanced video search and recommendations.
@@ -90,15 +92,17 @@ const YouTubeApiSettings: React.FC<YouTubeApiSettingsProps> = ({ userId }) => {
               </span>
             </div>
             
-            <CustomButton
-              variant="outline"
-              onClick={saveApiKey}
-              isLoading={isLoading}
-              disabled={!apiKey || apiKey === savedKey}
-              icon={<Save size={16} />}
-            >
-              Save API Key
-            </CustomButton>
+            <div className={`${isMobile ? 'flex justify-center' : ''}`}>
+              <CustomButton
+                variant="outline"
+                onClick={saveApiKey}
+                isLoading={isLoading}
+                disabled={!apiKey || apiKey === savedKey}
+                icon={<Save size={16} />}
+              >
+                Save API Key
+              </CustomButton>
+            </div>
           </div>
         </div>
       </div>
