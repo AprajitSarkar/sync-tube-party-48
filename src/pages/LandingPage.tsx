@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -44,7 +43,7 @@ const LandingPage = () => {
           animate={{ opacity: 1, x: 0 }}
           className="text-2xl font-bold text-gradient"
         >
-          SyncTube Party
+          WatchTube
         </motion.h1>
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
@@ -113,7 +112,7 @@ const LandingPage = () => {
             <div className="relative glass-effect rounded-2xl overflow-hidden aspect-video">
               <img 
                 src="/placeholder.svg" 
-                alt="SyncTube Party Preview" 
+                alt="WatchTube Preview" 
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 flex items-center justify-center">
@@ -126,7 +125,6 @@ const LandingPage = () => {
         </motion.div>
       </section>
 
-      {/* Features Section */}
       <section className="py-20 bg-background/50">
         <div className="container mx-auto px-6">
           <motion.div 
@@ -196,7 +194,6 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-20">
         <motion.div 
           className="container mx-auto px-6 text-center"
@@ -209,7 +206,7 @@ const LandingPage = () => {
             Ready to Get Started?
           </h2>
           <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
-            Join thousands of users who are already enjoying SyncTube Party for their synchronized viewing sessions.
+            Join thousands of users who are already enjoying WatchTube for their synchronized viewing sessions.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <CustomButton 
@@ -232,12 +229,11 @@ const LandingPage = () => {
         </motion.div>
       </section>
       
-      {/* Footer */}
       <footer className="bg-background/30 py-12">
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-6 md:mb-0">
-              <h2 className="text-2xl font-bold text-gradient mb-2">SyncTube Party</h2>
+              <h2 className="text-2xl font-bold text-gradient mb-2">WatchTube</h2>
               <p className="text-muted-foreground">Watch together, anytime, anywhere.</p>
             </div>
             <div className="flex gap-6">
@@ -257,7 +253,7 @@ const LandingPage = () => {
           </div>
           <div className="border-t border-white/10 mt-8 pt-8 text-center">
             <p className="text-muted-foreground text-sm">
-              © {new Date().getFullYear()} SyncTube Party. All rights reserved.
+              © {new Date().getFullYear()} WatchTube.com. All rights reserved.
             </p>
           </div>
         </div>

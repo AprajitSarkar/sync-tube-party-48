@@ -1,0 +1,12 @@
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://watchtube.com/sitemap.xml
+
+# Disallow paths
+Disallow: /auth
+Disallow: /profile
+Disallow: /room/
+Disallow: /forgot-password

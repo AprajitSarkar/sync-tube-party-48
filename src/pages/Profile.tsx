@@ -12,9 +12,10 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { User, KeyRound, Trash2, LogOut, Music } from 'lucide-react';
+import { User, KeyRound, Trash2, LogOut, Music, Youtube } from 'lucide-react';
 import PageTransition from '@/components/common/PageTransition';
 import UserPlaylistManager from '@/components/profile/UserPlaylistManager';
+import YouTubeApiSettings from '@/components/profile/YouTubeApiSettings';
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(6, { message: 'Password must be at least 6 characters' }),
@@ -85,10 +86,11 @@ const Profile = () => {
           </header>
           
           <Tabs defaultValue="account" className="mb-8">
-            <TabsList className="grid grid-cols-3 w-full max-w-md mb-6">
+            <TabsList className="grid grid-cols-4 w-full max-w-md mb-6">
               <TabsTrigger value="account">Account</TabsTrigger>
               <TabsTrigger value="security">Security</TabsTrigger>
               <TabsTrigger value="playlists">Playlists</TabsTrigger>
+              <TabsTrigger value="api">YouTube API</TabsTrigger>
             </TabsList>
             
             <TabsContent value="account">
@@ -264,6 +266,24 @@ const Profile = () => {
                       <p className="text-muted-foreground mb-6">Manage your saved playlists</p>
                       
                       <UserPlaylistManager />
+                    </div>
+                  </div>
+                </div>
+              </GlassCard>
+            </TabsContent>
+            
+            <TabsContent value="api">
+              <GlassCard>
+                <div className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full glass-effect flex items-center justify-center">
+                      <Youtube size={24} className="text-muted-foreground" />
+                    </div>
+                    <div className="flex-grow">
+                      <h2 className="text-xl font-semibold text-enhanced">YouTube API Settings</h2>
+                      <p className="text-muted-foreground mb-6">Configure your YouTube API for enhanced video search</p>
+                      
+                      <YouTubeApiSettings userId={user?.id} />
                     </div>
                   </div>
                 </div>
