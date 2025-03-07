@@ -9,7 +9,8 @@ import VideoPlayer from '@/components/room/VideoPlayer';
 import ChatPanel from '@/components/room/ChatPanel';
 import RoomParticipants from '@/components/room/RoomParticipants';
 import PlaylistPanel from '@/components/room/PlaylistPanel';
-import { ArrowLeft, Share2, Search, X, Play, ListPlus } from 'lucide-react';
+import UserPlaylists from '@/components/room/UserPlaylists';
+import { ArrowLeft, Share2, Search, X, Play, ListPlus, LibraryBig } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import PageTransition from '@/components/common/PageTransition';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,6 +50,7 @@ const Room = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [logMessage, setLogMessage] = useState('');
   const [logVisible, setLogVisible] = useState(false);
+  const [showMyPlaylists, setShowMyPlaylists] = useState(false);
 
   useEffect(() => {
     if (!user || !roomId) {
@@ -88,11 +90,36 @@ const Room = () => {
     };
   }, [roomId, user, navigate]);
 
+  // Add meta tag to disable zoom on mobile
+  useEffect(() => {
+    const metaViewport = document.querySelector('meta[name="viewport"]');
+    if (metaViewport) {
+      metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    }
+    
+    return () => {
+      // Reset viewport meta tag when component unmounts
+      if (metaViewport) {
+        metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+      }
+    };
+  }, []);
+
+  const showLog = (message: string) => {
+    setLogMessage(message);
+    setLogVisible(true);
+  };
+
+  const hideLog = () => {
+    setLogVisible(false);
+  };
+
   const fetchRoomDetails = async () => {
     if (!roomId) return;
     
     try {
       setIsLoading(true);
+      showLog("Loading room details...");
       
       const { data, error } = await supabase
         .from('video_rooms')
@@ -106,8 +133,10 @@ const Room = () => {
       if (data.video_state?.videoId) {
         setCurrentVideoId(data.video_state.videoId);
       }
+      showLog("Room details loaded");
     } catch (error) {
       console.error('Error fetching room details:', error);
+      showLog("Failed to load room");
       toast({
         title: 'Error',
         description: 'Failed to load room. Room may not exist.',
@@ -191,6 +220,50 @@ const Room = () => {
       });
   };
 
+  const addToRoomPlaylist = async (videoId: string, title: string) => {
+    if (!roomId || !user) return;
+    
+    try {
+      showLog("Adding to room playlist...");
+      
+      // Get the max position
+      const { data: playlistData } = await supabase
+        .from('playlist_items')
+        .select('position')
+        .eq('room_id', roomId)
+        .order('position', { ascending: false })
+        .limit(1);
+      
+      const maxPosition = playlistData && playlistData.length > 0 ? playlistData[0].position : -1;
+      
+      const { error } = await supabase
+        .from('playlist_items')
+        .insert({
+          room_id: roomId,
+          video_id: videoId,
+          title,
+          position: maxPosition + 1,
+          added_by: user.id
+        });
+
+      if (error) throw error;
+      
+      showLog("Added to room playlist");
+      toast({
+        title: 'Success',
+        description: `Added "${title}" to room playlist`,
+      });
+    } catch (error) {
+      console.error('Error adding to room playlist:', error);
+      showLog("Failed to add to room playlist");
+      toast({
+        title: 'Error',
+        description: 'Failed to add to room playlist',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const shareRoom = () => {
     const shareUrl = `${window.location.origin}/room/${roomId}`;
     
@@ -232,11 +305,16 @@ const Room = () => {
     }
   };
 
+  const toggleMyPlaylists = () => {
+    setShowMyPlaylists(!showMyPlaylists);
+  };
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
     setIsSearching(true);
     try {
+      showLog("Searching videos...");
       // Using the YouTube search method
       const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
       const response = await fetch(searchUrl);
@@ -309,15 +387,6 @@ const Room = () => {
     }
   };
 
-  const showLog = (message: string) => {
-    setLogMessage(message);
-    setLogVisible(true);
-  };
-
-  const hideLog = () => {
-    setLogVisible(false);
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -362,6 +431,17 @@ const Room = () => {
             >
               <Share2 size={18} />
             </CustomButton>
+            
+            <CustomButton
+              variant="ghost"
+              size="icon"
+              onClick={toggleMyPlaylists}
+              className={`h-8 w-8 ${showMyPlaylists ? 'bg-primary/20' : ''}`}
+              title="My Playlists"
+            >
+              <LibraryBig size={18} />
+            </CustomButton>
+            
             <CustomButton
               variant="ghost"
               size="icon"
@@ -447,6 +527,25 @@ const Room = () => {
                     ))}
                   </motion.div>
                 )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* My Playlists Panel */}
+        <AnimatePresence>
+          {showMyPlaylists && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="w-full overflow-hidden"
+            >
+              <div className="bg-[#1E0F38] p-4 border-b border-white/10">
+                <UserPlaylists 
+                  onPlayVideo={handlePlayVideo}
+                  onAddToRoomPlaylist={addToRoomPlaylist}
+                />
               </div>
             </motion.div>
           )}

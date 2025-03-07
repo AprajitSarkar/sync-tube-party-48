@@ -29,7 +29,7 @@ const LogToast = ({ message, duration = 1000, visible, onHide }: LogToastProps) 
           exit={{ opacity: 0, y: -20 }}
           className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50"
         >
-          <div className="bg-black/80 backdrop-blur-sm text-white px-4 py-2 rounded-md shadow-lg border border-white/10">
+          <div className="bg-black/80 backdrop-blur-sm text-white px-4 py-2 rounded-md shadow-lg border border-white/10 max-w-[250px] text-center">
             {message}
           </div>
         </motion.div>

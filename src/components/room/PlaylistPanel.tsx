@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Input } from '@/components/ui/input';
 import { CustomButton } from '@/components/ui/custom-button';
-import { Search, Plus, Play } from 'lucide-react';
+import { Search, Plus, Play, Save } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 import PlaylistItem from './PlaylistItem';
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
+import LogToast from '@/components/common/LogToast';
 
 interface PlaylistPanelProps {
   roomId: string;
@@ -32,9 +33,16 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const { user } = useAuth();
+  const [showSaveOptions, setShowSaveOptions] = useState<{[key: string]: boolean}>({});
+  const [userPlaylists, setUserPlaylists] = useState<string[]>([]);
+  const [logMessage, setLogMessage] = useState('');
+  const [logVisible, setLogVisible] = useState(false);
 
   useEffect(() => {
     fetchPlaylist();
+    if (user) {
+      fetchUserPlaylistNames();
+    }
 
     const playlistSubscription = supabase
       .channel(`playlist:${roomId}`)
@@ -51,11 +59,41 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     return () => {
       playlistSubscription.unsubscribe();
     };
-  }, [roomId]);
+  }, [roomId, user]);
+
+  const showLog = (message: string) => {
+    setLogMessage(message);
+    setLogVisible(true);
+  };
+
+  const hideLog = () => {
+    setLogVisible(false);
+  };
+
+  const fetchUserPlaylistNames = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_playlists')
+        .select('playlist_name')
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      // Get unique playlist names
+      const uniqueNames = [...new Set((data || []).map(item => item.playlist_name))];
+      setUserPlaylists(uniqueNames);
+    } catch (error) {
+      console.error('Error fetching user playlist names:', error);
+    }
+  };
 
   const fetchPlaylist = async () => {
     try {
       setIsLoading(true);
+      showLog("Loading playlist...");
+      
       const { data, error } = await supabase
         .from('playlist_items')
         .select('*')
@@ -64,8 +102,10 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
 
       if (error) throw error;
       setPlaylist(data || []);
+      showLog("Playlist loaded");
     } catch (error) {
       console.error('Error fetching playlist:', error);
+      showLog("Failed to load playlist");
       toast({
         title: 'Error',
         description: 'Failed to load playlist',
@@ -106,6 +146,7 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     }
     
     try {
+      showLog("Adding to playlist...");
       // Get video title from oEmbed API
       const response = await fetch(`https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`);
       const data = await response.json();
@@ -132,12 +173,14 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
       }
       
       setUrlInput('');
+      showLog("Added to playlist");
       toast({
         title: 'Video Added',
         description: `"${title}" added to playlist`,
       });
     } catch (error) {
       console.error('Error adding to playlist:', error);
+      showLog("Failed to add to playlist");
       toast({
         title: 'Error',
         description: 'Failed to add video to playlist. Please try again.',
@@ -158,32 +201,47 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     
     try {
       setIsSearching(true);
+      showLog("Searching videos...");
       
-      // Using YouTube Data API would be better, but for demonstration:
-      // Fetch a few sample videos based on the query
-      const mockResults = [
-        { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up' },
-        { id: '9bZkp7q19f0', title: 'PSY - Gangnam Style' },
-        { id: 'JGwWNGJdvx8', title: 'Ed Sheeran - Shape of You' },
-        { id: 'kJQP7kiw5Fk', title: 'Luis Fonsi - Despacito ft. Daddy Yankee' },
-        { id: 'OPf0YbXqDm0', title: 'Mark Ronson - Uptown Funk ft. Bruno Mars' }
-      ];
+      const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+      const response = await fetch(searchUrl);
+      const html = await response.text();
       
-      // Filter results by search term for demo purposes
-      const filteredResults = mockResults.filter(r => 
-        r.title.toLowerCase().includes(query.toLowerCase())
-      );
+      // Extract video IDs from search results
+      const videoPattern = /\/watch\?v=([\w-]{11})/g;
+      const matches = html.matchAll(videoPattern);
+      const uniqueIds = [...new Set([...matches].map(match => match[1]))].slice(0, 5);
       
-      setSearchResults(filteredResults.length > 0 ? filteredResults : mockResults);
+      // Get video titles
+      const results = await Promise.all(uniqueIds.map(async (id) => {
+        try {
+          const response = await fetch(`https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${id}&format=json`);
+          const data = await response.json();
+          return {
+            id,
+            title: data.title || 'Untitled Video'
+          };
+        } catch (error) {
+          return {
+            id,
+            title: 'Untitled Video'
+          };
+        }
+      }));
       
-      if (filteredResults.length === 0 && mockResults.length > 0) {
+      setSearchResults(results);
+      showLog(`Found ${results.length} videos`);
+      
+      if (results.length === 0) {
         toast({
-          title: 'No exact matches',
-          description: 'Showing popular videos instead',
+          title: 'No Results',
+          description: 'No videos found for your search',
+          variant: 'destructive'
         });
       }
     } catch (error) {
       console.error('Error searching videos:', error);
+      showLog("Search failed");
       toast({
         title: 'Error',
         description: 'Failed to search videos',
@@ -196,6 +254,7 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
 
   const addSearchResultToPlaylist = async (result: any) => {
     try {
+      showLog("Adding to playlist...");
       // Get the new position (max position + 1)
       const maxPosition = playlist.length > 0 
         ? Math.max(...playlist.map(item => item.position)) 
@@ -218,12 +277,14 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
       
       setSearchResults([]);
       setUrlInput('');
+      showLog("Added to playlist");
       toast({
         title: 'Video Added',
         description: `"${result.title}" added to playlist`,
       });
     } catch (error) {
       console.error('Error adding to playlist:', error);
+      showLog("Failed to add to playlist");
       toast({
         title: 'Error',
         description: 'Failed to add video to playlist',
@@ -232,8 +293,67 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     }
   };
 
+  const saveToUserPlaylist = async (videoId: string, title: string, playlistName: string) => {
+    if (!user) return;
+    
+    try {
+      showLog(`Saving to "${playlistName}"...`);
+      
+      // Get the max position for the specified playlist
+      const { data: positionData, error: positionError } = await supabase
+        .from('user_playlist_items')
+        .select('position')
+        .eq('user_id', user.id)
+        .eq('playlist_name', playlistName)
+        .order('position', { ascending: false })
+        .limit(1);
+        
+      if (positionError) throw positionError;
+      
+      const maxPosition = positionData && positionData.length > 0 ? positionData[0].position : -1;
+      
+      // Insert the item into the user's playlist
+      const { error } = await supabase
+        .from('user_playlist_items')
+        .insert({
+          user_id: user.id,
+          playlist_name: playlistName,
+          video_id: videoId,
+          title,
+          position: maxPosition + 1
+        });
+        
+      if (error) throw error;
+      
+      // Close the save options menu
+      toggleSaveOptions(videoId);
+      
+      showLog("Saved to playlist");
+      toast({
+        title: 'Success',
+        description: `Saved to "${playlistName}" playlist`,
+      });
+    } catch (error) {
+      console.error('Error saving to user playlist:', error);
+      showLog("Failed to save to playlist");
+      toast({
+        title: 'Error',
+        description: 'Failed to save to your playlist',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const toggleSaveOptions = (videoId: string) => {
+    setShowSaveOptions(prev => ({
+      ...prev,
+      [videoId]: !prev[videoId]
+    }));
+  };
+
   const removeFromPlaylist = async (id: string) => {
     try {
+      showLog("Removing from playlist...");
       const { error } = await supabase
         .from('playlist_items')
         .delete()
@@ -245,12 +365,14 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
       const updatedPlaylist = playlist.filter(item => item.id !== id);
       updatePositions(updatedPlaylist);
       
+      showLog("Removed from playlist");
       toast({
         title: 'Video Removed',
         description: 'Video removed from playlist',
       });
     } catch (error) {
       console.error('Error removing from playlist:', error);
+      showLog("Failed to remove from playlist");
       toast({
         title: 'Error',
         description: 'Failed to remove video from playlist',
@@ -281,6 +403,7 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     setPlaylist(newPlaylist);
     
     try {
+      showLog("Updating playlist order...");
       // Update each item's position in the database
       const updates = newPlaylist.map((item, index) => ({
         id: item.id,
@@ -293,8 +416,10 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
           .update({ position: update.position })
           .eq('id', update.id);
       }
+      showLog("Playlist order updated");
     } catch (error) {
       console.error('Error updating positions:', error);
+      showLog("Failed to update playlist order");
       toast({
         title: 'Error',
         description: 'Failed to update playlist order',
@@ -306,110 +431,306 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     }
   };
 
-  return (
-    <GlassCard className="flex flex-col h-full">
-      <div className="p-3 border-b border-white/10">
-        <h3 className="font-medium text-white">Playlist</h3>
-      </div>
+  const createNewPlaylist = async (videoId: string, title: string, newPlaylistName: string) => {
+    if (!user || !newPlaylistName.trim()) return;
+    
+    try {
+      showLog("Creating new playlist...");
       
-      <div className="p-3 border-b border-white/10">
-        <div className="flex gap-2">
-          <Input
-            placeholder="YouTube URL or search..."
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            className="h-10 bg-background/30 border-white/20 text-white"
-          />
-          <CustomButton
-            size="sm"
-            variant="glow"
-            onClick={addToPlaylist}
-            isLoading={isSearching}
-            icon={urlInput.includes('youtube.com') || urlInput.includes('youtu.be') ? <Plus size={16} /> : <Search size={16} />}
-          >
-            {urlInput.includes('youtube.com') || urlInput.includes('youtu.be') ? 'Add' : 'Search'}
-          </CustomButton>
+      // Create new playlist
+      const { error: playlistError } = await supabase
+        .from('user_playlists')
+        .insert({
+          user_id: user.id,
+          playlist_name: newPlaylistName.trim()
+        });
+        
+      if (playlistError) throw playlistError;
+      
+      // Add the video to the new playlist
+      const { error: itemError } = await supabase
+        .from('user_playlist_items')
+        .insert({
+          user_id: user.id,
+          playlist_name: newPlaylistName.trim(),
+          video_id: videoId,
+          title,
+          position: 0
+        });
+        
+      if (itemError) throw itemError;
+      
+      // Update local state
+      setUserPlaylists(prev => [...prev, newPlaylistName.trim()]);
+      
+      // Close the save options
+      toggleSaveOptions(videoId);
+      
+      showLog("Created and saved to new playlist");
+      toast({
+        title: 'Success',
+        description: `Created "${newPlaylistName}" and saved video`,
+      });
+    } catch (error) {
+      console.error('Error creating new playlist:', error);
+      showLog("Failed to create playlist");
+      toast({
+        title: 'Error',
+        description: 'Failed to create new playlist',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  return (
+    <>
+      <LogToast 
+        message={logMessage} 
+        visible={logVisible} 
+        onHide={hideLog} 
+        duration={1000}
+      />
+      
+      <GlassCard className="flex flex-col h-full">
+        <div className="p-3 border-b border-white/10">
+          <h3 className="font-medium text-white">Playlist</h3>
         </div>
         
-        {searchResults.length > 0 && (
-          <div className="mt-3">
-            <GlassCard className="p-2" intensity="light">
-              <h4 className="text-sm font-medium mb-2 text-white">Search Results</h4>
-              <div className="space-y-2">
-                {searchResults.map((result) => (
-                  <div 
-                    key={result.id} 
-                    className="flex items-center p-2 hover:bg-white/10 rounded cursor-pointer"
-                    onClick={() => addSearchResultToPlaylist(result)}
-                  >
-                    <div className="w-12 h-9 bg-black/40 rounded overflow-hidden flex-shrink-0 mr-2">
-                      <img 
-                        src={`https://i.ytimg.com/vi/${result.id}/default.jpg`} 
-                        alt={result.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = 'public/placeholder.svg';
-                        }}
-                      />
-                    </div>
-                    <p className="text-sm truncate flex-1 text-white">{result.title}</p>
-                    <button 
-                      className="p-2 rounded-full hover:bg-white/10 transition flex items-center justify-center"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addSearchResultToPlaylist(result);
-                      }}
-                    >
-                      <Play size={16} className="text-white fill-white/20" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
+        <div className="p-3 border-b border-white/10">
+          <div className="flex gap-2">
+            <Input
+              placeholder="YouTube URL or search..."
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              className="h-10 bg-background/30 border-white/20 text-white"
+            />
+            <CustomButton
+              size="sm"
+              variant="glow"
+              onClick={addToPlaylist}
+              isLoading={isSearching}
+              icon={urlInput.includes('youtube.com') || urlInput.includes('youtu.be') ? <Plus size={16} /> : <Search size={16} />}
+            >
+              {urlInput.includes('youtube.com') || urlInput.includes('youtu.be') ? 'Add' : 'Search'}
+            </CustomButton>
           </div>
-        )}
-      </div>
-      
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="p-3">
-            {playlist.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 text-white">
-                <p>Playlist is empty</p>
-                <p className="text-sm mt-1 text-white/70">Add videos using the search box above</p>
-              </div>
-            ) : (
-              <DragDropContext onDragEnd={handleDragEnd}>
-                <Droppable droppableId="playlist">
-                  {(provided) => (
-                    <div
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
+          
+          {searchResults.length > 0 && (
+            <div className="mt-3">
+              <GlassCard className="p-2" intensity="light">
+                <h4 className="text-sm font-medium mb-2 text-white">Search Results</h4>
+                <div className="space-y-2">
+                  {searchResults.map((result) => (
+                    <div 
+                      key={result.id} 
+                      className="flex items-center p-2 hover:bg-white/10 rounded cursor-pointer"
                     >
-                      {playlist.map((item, index) => (
-                        <PlaylistItem
-                          key={item.id}
-                          videoItem={{
-                            id: item.id,
-                            title: item.title,
-                            videoId: item.video_id,
+                      <div className="w-12 h-9 bg-black/40 rounded overflow-hidden flex-shrink-0 mr-2">
+                        <img 
+                          src={`https://i.ytimg.com/vi/${result.id}/default.jpg`} 
+                          alt={result.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = 'public/placeholder.svg';
                           }}
-                          index={index}
-                          isPlaying={item.video_id === currentVideoId}
-                          onPlay={() => onPlayVideo(item.video_id)}
-                          onRemove={removeFromPlaylist}
                         />
-                      ))}
-                      {provided.placeholder}
+                      </div>
+                      <p className="text-sm truncate flex-1 text-white">{result.title}</p>
+                      <div className="flex gap-1">
+                        <button 
+                          className="p-2 rounded-full hover:bg-white/10 transition flex items-center justify-center"
+                          onClick={() => onPlayVideo(result.id)}
+                          title="Play now"
+                        >
+                          <Play size={16} className="text-white fill-white/20" />
+                        </button>
+                        <button 
+                          className="p-2 rounded-full hover:bg-white/10 transition flex items-center justify-center"
+                          onClick={() => {
+                            addSearchResultToPlaylist(result);
+                          }}
+                          title="Add to room playlist"
+                        >
+                          <Plus size={16} className="text-white" />
+                        </button>
+                        {user && (
+                          <div className="relative">
+                            <button 
+                              className="p-2 rounded-full hover:bg-white/10 transition flex items-center justify-center"
+                              onClick={() => toggleSaveOptions(result.id)}
+                              title="Save to your playlist"
+                            >
+                              <Save size={16} className="text-white" />
+                            </button>
+                            
+                            {showSaveOptions[result.id] && (
+                              <div className="absolute right-0 mt-1 z-20 bg-black/80 backdrop-blur-md rounded-md shadow-lg border border-white/10 w-48">
+                                <div className="p-2 border-b border-white/10">
+                                  <p className="text-xs font-medium">Save to playlist</p>
+                                </div>
+                                <div className="max-h-40 overflow-y-auto p-1">
+                                  {userPlaylists.length > 0 ? (
+                                    userPlaylists.map(name => (
+                                      <button
+                                        key={name}
+                                        className="w-full text-left p-2 text-sm hover:bg-white/10 rounded-sm"
+                                        onClick={() => saveToUserPlaylist(result.id, result.title, name)}
+                                      >
+                                        {name}
+                                      </button>
+                                    ))
+                                  ) : (
+                                    <p className="text-xs p-2 text-muted-foreground">No playlists yet</p>
+                                  )}
+                                </div>
+                                <div className="p-2 border-t border-white/10">
+                                  <div className="flex gap-1">
+                                    <Input
+                                      placeholder="New playlist..."
+                                      className="h-7 text-xs"
+                                      onClick={(e) => e.stopPropagation()}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          const input = e.currentTarget;
+                                          createNewPlaylist(result.id, result.title, input.value);
+                                          input.value = '';
+                                        }
+                                      }}
+                                    />
+                                    <CustomButton
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const input = e.currentTarget.previousSibling as HTMLInputElement;
+                                        createNewPlaylist(result.id, result.title, input.value);
+                                        input.value = '';
+                                      }}
+                                    >
+                                      <Plus size={14} />
+                                    </CustomButton>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            )}
-          </div>
-        </ScrollArea>
-      </div>
-    </GlassCard>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-3">
+              {playlist.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-32 text-white">
+                  <p>Playlist is empty</p>
+                  <p className="text-sm mt-1 text-white/70">Add videos using the search box above</p>
+                </div>
+              ) : (
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <Droppable droppableId="playlist">
+                    {(provided) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                      >
+                        {playlist.map((item, index) => (
+                          <div key={item.id} className="relative">
+                            <PlaylistItem
+                              videoItem={{
+                                id: item.id,
+                                title: item.title,
+                                videoId: item.video_id,
+                              }}
+                              index={index}
+                              isPlaying={item.video_id === currentVideoId}
+                              onPlay={() => onPlayVideo(item.video_id)}
+                              onRemove={removeFromPlaylist}
+                            />
+                            
+                            {user && (
+                              <>
+                                <button
+                                  className="absolute right-14 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-white/10"
+                                  onClick={() => toggleSaveOptions(item.video_id)}
+                                  title="Save to your playlist"
+                                >
+                                  <Save size={14} className="text-white" />
+                                </button>
+                                
+                                {showSaveOptions[item.video_id] && (
+                                  <div className="absolute right-14 top-full mt-1 z-20 bg-black/80 backdrop-blur-md rounded-md shadow-lg border border-white/10 w-48">
+                                    <div className="p-2 border-b border-white/10">
+                                      <p className="text-xs font-medium">Save to playlist</p>
+                                    </div>
+                                    <div className="max-h-40 overflow-y-auto p-1">
+                                      {userPlaylists.length > 0 ? (
+                                        userPlaylists.map(name => (
+                                          <button
+                                            key={name}
+                                            className="w-full text-left p-2 text-sm hover:bg-white/10 rounded-sm"
+                                            onClick={() => saveToUserPlaylist(item.video_id, item.title, name)}
+                                          >
+                                            {name}
+                                          </button>
+                                        ))
+                                      ) : (
+                                        <p className="text-xs p-2 text-muted-foreground">No playlists yet</p>
+                                      )}
+                                    </div>
+                                    <div className="p-2 border-t border-white/10">
+                                      <div className="flex gap-1">
+                                        <Input
+                                          placeholder="New playlist..."
+                                          className="h-7 text-xs"
+                                          onClick={(e) => e.stopPropagation()}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              const input = e.currentTarget;
+                                              createNewPlaylist(item.video_id, item.title, input.value);
+                                              input.value = '';
+                                            }
+                                          }}
+                                        />
+                                        <CustomButton
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-7 w-7"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const input = e.currentTarget.previousSibling as HTMLInputElement;
+                                            createNewPlaylist(item.video_id, item.title, input.value);
+                                            input.value = '';
+                                          }}
+                                        >
+                                          <Plus size={14} />
+                                        </CustomButton>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+      </GlassCard>
+    </>
   );
 };
 
