@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +12,7 @@ import { ArrowLeft, Share2, Search } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import PageTransition from '@/components/common/PageTransition';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface RoomDetails {
   id: string;
@@ -34,7 +33,7 @@ const Room = () => {
   const [room, setRoom] = useState<RoomDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentVideoId, setCurrentVideoId] = useState('');
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!user || !roomId) {
