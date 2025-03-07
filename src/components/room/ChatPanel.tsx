@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Input } from '@/components/ui/input';
@@ -22,6 +21,7 @@ interface Message {
   content: string;
   created_at: string;
   user_email?: string;
+  type?: 'message' | 'activity';
 }
 
 const ChatPanel = ({ roomId }: ChatPanelProps) => {
@@ -34,7 +34,6 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
   const [logMessage, setLogMessage] = useState('');
   const [logVisible, setLogVisible] = useState(false);
 
-  // Fetch messages and subscribe to new ones
   useEffect(() => {
     fetchMessages();
 
@@ -48,7 +47,6 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
       }, (payload) => {
         const newMessage = payload.new as Message;
         
-        // Add user email to the message
         getUserEmail(newMessage.user_id).then((userEmail) => {
           setMessages((prev) => [
             ...prev, 
@@ -58,12 +56,47 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
       })
       .subscribe();
 
+    const roomEvents = supabase
+      .channel(`room-events:${roomId}`)
+      .on('presence', { event: 'join' }, ({ newPresences }) => {
+        const userEmail = newPresences[0]?.email || 'Someone';
+        addActivityLog(`${userEmail} joined the room`);
+      })
+      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        const userEmail = leftPresences[0]?.email || 'Someone';
+        addActivityLog(`${userEmail} left the room`);
+      })
+      .subscribe();
+
+    const videoEvents = supabase
+      .channel(`video-events:${roomId}`)
+      .on('broadcast', { event: 'video-state' }, (payload) => {
+        const { user, action } = payload;
+        const userEmail = user?.email || 'Someone';
+        
+        switch (action) {
+          case 'play':
+            addActivityLog(`${userEmail} started playing the video`);
+            break;
+          case 'pause':
+            addActivityLog(`${userEmail} paused the video`);
+            break;
+          case 'seek':
+            addActivityLog(`${userEmail} seeked the video`);
+            break;
+          default:
+            break;
+        }
+      })
+      .subscribe();
+
     return () => {
       messagesSubscription.unsubscribe();
+      roomEvents.unsubscribe();
+      videoEvents.unsubscribe();
     };
   }, [roomId]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -82,9 +115,7 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
       setIsLoading(true);
       showLog("Loading messages...");
       
-      // Check if roomId is valid UUID
       if (!roomId || !roomId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
-        // For string IDs, convert to proper format
         const { data, error } = await supabase
           .from('messages')
           .select('*')
@@ -93,7 +124,6 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
 
         if (error) throw error;
         
-        // Add user emails to messages
         const messagesWithUserEmails = await Promise.all(
           (data || []).map(async (message) => {
             const userEmail = await getUserEmail(message.user_id);
@@ -103,7 +133,6 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
 
         setMessages(messagesWithUserEmails);
       } else {
-        // For UUID format
         const { data, error } = await supabase
           .from('messages')
           .select('*')
@@ -112,7 +141,6 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
 
         if (error) throw error;
         
-        // Add user emails to messages
         const messagesWithUserEmails = await Promise.all(
           (data || []).map(async (message) => {
             const userEmail = await getUserEmail(message.user_id);
@@ -183,6 +211,19 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
     }
   };
 
+  const addActivityLog = (content: string) => {
+    const activityMessage: Message = {
+      id: Date.now().toString(),
+      user_id: 'system',
+      room_id: roomId,
+      content,
+      created_at: new Date().toISOString(),
+      type: 'activity'
+    };
+    
+    setMessages(prev => [...prev, activityMessage]);
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -216,11 +257,20 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
           ) : (
             <div className="flex flex-col">
               {messages.map((message) => (
-                <ChatMessage 
-                  key={message.id} 
-                  message={message} 
-                  currentUser={user}
-                />
+                message.type === 'activity' ? (
+                  <div 
+                    key={message.id}
+                    className="text-xs text-muted-foreground text-center my-2 italic"
+                  >
+                    {message.content}
+                  </div>
+                ) : (
+                  <ChatMessage 
+                    key={message.id} 
+                    message={message} 
+                    currentUser={user}
+                  />
+                )
               ))}
               <div ref={messagesEndRef} />
             </div>
