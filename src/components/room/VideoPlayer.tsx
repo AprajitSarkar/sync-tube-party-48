@@ -264,12 +264,16 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     setIsPlayerReady(true);
     setIsLoading(false);
     
-    const videoState = event.target.getVideoData();
-    console.log('Current video data:', videoState);
-    
-    // Apply stored state if needed
-    if (isPlaying) {
-      event.target.playVideo();
+    try {
+      const videoData = event.target.getVideoData();
+      console.log('Current video data:', videoData);
+      
+      // Apply stored state if needed
+      if (isPlaying) {
+        event.target.playVideo();
+      }
+    } catch (error) {
+      console.error('Error getting video data:', error);
     }
   };
 

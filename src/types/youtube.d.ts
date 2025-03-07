@@ -22,6 +22,14 @@ interface YTPlayer {
   mute: () => void;
   unMute: () => void;
   isMuted: () => boolean;
+  getVideoData: () => {
+    video_id: string;
+    author: string;
+    title: string;
+    isPlayable: boolean;
+    errorCode: string | null;
+    [key: string]: any;
+  };
 }
 
 interface YTPlayerEvent {
