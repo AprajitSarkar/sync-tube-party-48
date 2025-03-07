@@ -9,12 +9,16 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { LogIn, UserPlus, ArrowRight } from 'lucide-react';
+import { LogIn, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+  acceptTerms: z.boolean().refine(val => val === true, {
+    message: 'You must accept the terms and conditions'
+  }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -28,6 +32,7 @@ const AuthForm = () => {
     defaultValues: {
       email: '',
       password: '',
+      acceptTerms: false,
     },
   });
 
@@ -48,7 +53,7 @@ const AuthForm = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full max-w-md mx-auto"
+      className="w-full max-w-md mx-auto px-4"
     >
       <GlassCard className="p-6 sm:p-8">
         <div className="mb-6 text-center">
@@ -64,16 +69,15 @@ const AuthForm = () => {
 
         <CustomButton 
           type="button" 
-          className="w-full mb-6" 
+          className="w-full mb-6 flex items-center justify-center gap-2" 
           variant="outline"
           onClick={handleGoogleSignIn}
         >
-          <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 11-6.18-5.984c1.694 0 3.232.704 4.345 1.825l2.882-2.882C11.828 9.24 9.5 8.061 6.844 8.061c-5.302 0-9.606 4.304-9.606 9.606s4.304 9.606 9.606 9.606c9.149 0 11.057-8.542 10.127-16.158h-14.4v4.18h9.28z"
-            />
-          </svg>
+          <img 
+            src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png" 
+            alt="Google" 
+            className="w-5 h-5"
+          />
           Continue with Google
         </CustomButton>
 
@@ -84,7 +88,7 @@ const AuthForm = () => {
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="email"
@@ -122,6 +126,29 @@ const AuthForm = () => {
               )}
             />
 
+            {isSignUp && (
+              <FormField
+                control={form.control}
+                name="acceptTerms"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm">
+                        I accept the <Link to="/terms" className="text-accent hover:underline">Terms and Conditions</Link>
+                      </FormLabel>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
+
             {!isSignUp && (
               <div className="text-right">
                 <Link 
@@ -149,7 +176,10 @@ const AuthForm = () => {
           <p className="text-sm text-enhanced-muted">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
             <button
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                form.reset();
+              }}
               className="ml-1 text-accent hover:underline focus:outline-none"
             >
               {isSignUp ? 'Sign In' : 'Sign Up'}

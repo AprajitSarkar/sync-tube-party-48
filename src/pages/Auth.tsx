@@ -23,7 +23,7 @@ const Auth = () => {
 
   return (
     <div 
-      className="min-h-screen flex flex-col items-center justify-center bg-background p-4"
+      className="min-h-screen w-full flex flex-col items-center justify-center bg-background py-8 px-4"
       style={{
         backgroundImage: "radial-gradient(circle at center, rgba(142, 45, 226, 0.08) 0%, transparent 70%)"
       }}
@@ -32,7 +32,7 @@ const Auth = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="text-center mb-8"
+        className="text-center mb-8 w-full max-w-md px-4"
       >
         <h1 className="text-3xl font-bold mb-2 text-gradient">Sync Tube Party</h1>
         <p className="text-muted-foreground">Watch YouTube videos with friends in real-time</p>

@@ -38,7 +38,7 @@ const ForgotPassword = () => {
   return (
     <PageTransition>
       <div 
-        className="min-h-screen flex flex-col items-center justify-center bg-background p-4"
+        className="min-h-screen w-full flex flex-col items-center justify-center bg-background py-8 px-4"
         style={{
           backgroundImage: "radial-gradient(circle at center, rgba(142, 45, 226, 0.08) 0%, transparent 70%)"
         }}
@@ -47,7 +47,7 @@ const ForgotPassword = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
+          className="w-full max-w-md px-4"
         >
           <Link to="/auth" className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors mb-6">
             <ArrowLeft size={16} className="mr-2" />
