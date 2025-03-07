@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -37,6 +38,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   const pendingVideoIdRef = useRef<string | null>(null);
   const remoteUpdateRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
+  const [showEmptyState, setShowEmptyState] = useState(false);
 
   useEffect(() => {
     const loadYouTubeAPI = () => {
@@ -75,6 +77,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     if (videoId) {
       console.log('Video ID changed to:', videoId);
       pendingVideoIdRef.current = videoId;
+      setShowEmptyState(false);
       
       if (window.YT && window.YT.Player) {
         if (playerRef.current) {
@@ -167,7 +170,13 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
           if (videoState.currentTime > 0) {
             setCurrentTime(videoState.currentTime);
           }
+        } else {
+          // No video ID in the room state
+          setShowEmptyState(true);
         }
+      } else {
+        // No video state in the room
+        setShowEmptyState(true);
       }
     } catch (error) {
       console.error('Error fetching room state:', error);
@@ -186,13 +195,17 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     remoteUpdateRef.current = true;
     
     try {
+      // Only change the video if it's different and not empty
       if (videoState.videoId && videoState.videoId !== videoId) {
+        console.log(`Setting video from remote update: ${videoState.videoId}`);
         setVideoId(videoState.videoId);
+        setShowEmptyState(false);
       }
 
+      // Update play state
       if (videoState.isPlaying !== isPlaying) {
         setIsPlaying(videoState.isPlaying);
-        if (playerRef.current && isPlayerReady) {
+        if (playerRef.current && isPlayerReady && videoState.videoId === videoId) {
           if (videoState.isPlaying) {
             playerRef.current.playVideo();
           } else {
@@ -201,7 +214,8 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         }
       }
 
-      if (playerRef.current && isPlayerReady && videoState.currentTime !== undefined) {
+      // Sync time if significant difference
+      if (playerRef.current && isPlayerReady && videoState.videoId === videoId && videoState.currentTime !== undefined) {
         const currentPlayerTime = playerRef.current.getCurrentTime();
         const timeDiff = Math.abs(currentPlayerTime - videoState.currentTime);
         
@@ -560,14 +574,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     });
   };
 
-  const defaultVideoId = '9bZkp7q19f0';
-  useEffect(() => {
-    if (!videoId && !pendingVideoIdRef.current) {
-      console.log('No video ID found, using default:', defaultVideoId);
-      setVideoId(defaultVideoId);
-    }
-  }, [videoId]);
-
   return (
     <GlassCard className="p-0 overflow-hidden" ref={containerRef}>
       <div className="relative w-full aspect-video">
@@ -576,6 +582,20 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
             <LoadingSpinner size="lg" />
           </div>
         )}
+        
+        {/* Empty state message when no video is playing */}
+        {showEmptyState && !isLoading && !videoId && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10 p-6 text-center">
+            <div className="rounded-full bg-primary/20 p-4 mb-4">
+              <Play size={40} className="text-primary" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Add a video to start the party!</h3>
+            <p className="text-muted-foreground mb-4">
+              Search for a YouTube video or paste a URL in the search box below.
+            </p>
+          </div>
+        )}
+        
         <div 
           ref={playerContainerRef}
           className="w-full h-full bg-black"
@@ -589,7 +609,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
               size="icon"
               variant="ghost"
               onClick={skipBackward}
-              disabled={!isPlayerReady}
+              disabled={!isPlayerReady || !videoId}
               title="Skip back 10 seconds"
             >
               <SkipBack size={20} />
@@ -599,7 +619,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
               size="icon"
               variant="ghost"
               onClick={togglePlayPause}
-              disabled={!isPlayerReady}
+              disabled={!isPlayerReady || !videoId}
             >
               {isPlaying ? <Pause size={20} /> : <Play size={20} />}
             </CustomButton>
@@ -608,7 +628,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
               size="icon"
               variant="ghost"
               onClick={skipForward}
-              disabled={!isPlayerReady}
+              disabled={!isPlayerReady || !videoId}
               title="Skip forward 10 seconds"
             >
               <SkipForward size={20} />
@@ -618,6 +638,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
               size="icon"
               variant="ghost"
               onClick={toggleFullscreen}
+              disabled={!videoId}
             >
               <Maximize2 size={20} />
             </CustomButton>
