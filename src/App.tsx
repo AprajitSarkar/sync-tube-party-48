@@ -15,7 +15,7 @@ import Home from "./pages/Home";
 import Room from "./pages/Room";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
-import Download from "./pages/Download";
+import DownloadPage from "./pages/Download";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Profile from "./pages/Profile";
@@ -43,7 +43,7 @@ const AppRoutes = () => (
       <Route path="/" element={<Landing />} />
       <Route path="/splash" element={<SplashScreen />} />
       <Route path="/auth" element={<Auth />} />
-      <Route path="/download" element={<Download />} />
+      <Route path="/download" element={<DownloadPage />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
       <Route
