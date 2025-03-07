@@ -38,39 +38,24 @@ const PlaylistItem = ({ videoItem, index, isPlaying, onPlay, onRemove }: Playlis
                 <GripVertical size={16} className="text-muted-foreground" />
               </div>
               
-              <div className="flex-1 min-w-0 flex items-center gap-2">
-                <div className="w-12 h-9 bg-black/40 rounded overflow-hidden flex-shrink-0">
-                  <img 
-                    src={`https://i.ytimg.com/vi/${videoItem.videoId}/default.jpg`} 
-                    alt={videoItem.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = 'public/placeholder.svg';
-                    }}
-                  />
-                </div>
-                <p className="text-sm font-medium truncate text-white">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">
                   {videoItem.title}
                 </p>
               </div>
               
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => onPlay(videoItem.videoId)}
-                  className="p-2 rounded-full hover:bg-white/10 transition flex items-center justify-center"
-                  aria-label="Play now"
+                  className="p-1 rounded-full hover:bg-white/10 transition"
                 >
-                  <Play size={18} className={cn(
-                    isPlaying ? "text-accent fill-accent" : "text-white fill-white/20" 
-                  )} />
+                  <Play size={16} className={isPlaying ? "text-accent" : ""} />
                 </button>
-                
                 <button
                   onClick={() => onRemove(videoItem.id)}
-                  className="p-2 rounded-full hover:bg-white/10 transition flex items-center justify-center"
-                  aria-label="Remove from playlist"
+                  className="p-1 rounded-full hover:bg-white/10 transition"
                 >
-                  <Trash2 size={18} className="text-white hover:text-destructive" />
+                  <Trash2 size={16} className="text-muted-foreground hover:text-destructive" />
                 </button>
               </div>
             </div>

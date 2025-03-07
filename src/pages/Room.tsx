@@ -9,11 +9,9 @@ import VideoPlayer from '@/components/room/VideoPlayer';
 import ChatPanel from '@/components/room/ChatPanel';
 import RoomParticipants from '@/components/room/RoomParticipants';
 import PlaylistPanel from '@/components/room/PlaylistPanel';
-import { ArrowLeft, Share2, Search } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import PageTransition from '@/components/common/PageTransition';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMobile } from '@/hooks/use-mobile';
 
 interface RoomDetails {
   id: string;
@@ -34,7 +32,6 @@ const Room = () => {
   const [room, setRoom] = useState<RoomDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentVideoId, setCurrentVideoId] = useState('');
-  const isMobile = useMobile();
 
   useEffect(() => {
     if (!user || !roomId) {
@@ -162,7 +159,7 @@ const Room = () => {
       .from('video_rooms')
       .update({
         video_state: {
-          isPlaying: true, // Auto play when selecting from playlist
+          isPlaying: false,
           timestamp: Date.now(),
           currentTime: 0,
           videoId: videoId
@@ -176,39 +173,6 @@ const Room = () => {
       });
   };
 
-  const shareRoom = () => {
-    const shareUrl = `${window.location.origin}/room/${roomId}`;
-    
-    if (navigator.share) {
-      navigator.share({
-        title: 'Join my Watch Video room',
-        text: 'Watch YouTube videos together!',
-        url: shareUrl,
-      }).catch(error => {
-        console.error('Error sharing:', error);
-        copyToClipboard(shareUrl);
-      });
-    } else {
-      copyToClipboard(shareUrl);
-    }
-  };
-  
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast({
-        title: 'Room link copied',
-        description: 'Share this link with friends to invite them',
-      });
-    }).catch(err => {
-      console.error('Failed to copy: ', err);
-      toast({
-        title: 'Failed to copy',
-        description: 'Please manually copy the URL from your browser',
-        variant: 'destructive'
-      });
-    });
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -219,96 +183,32 @@ const Room = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background flex flex-col">
-        {/* Header */}
-        <header className="p-3 flex justify-between items-center border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <CustomButton
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/home')}
-              className="h-8 w-8"
-            >
-              <ArrowLeft size={18} />
-            </CustomButton>
-            <h1 className="text-lg font-bold truncate">
-              {room?.name || 'Watch Video'}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <CustomButton
-              variant="ghost"
-              size="icon"
-              onClick={shareRoom}
-              className="h-8 w-8"
-              title="Share Room"
-            >
-              <Share2 size={18} />
-            </CustomButton>
-            <CustomButton
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/search')}
-              className="h-8 w-8"
-              title="Search"
-            >
-              <Search size={18} />
-            </CustomButton>
-          </div>
-        </header>
-        
-        {/* Video Player */}
-        <div className="w-full">
-          <VideoPlayer 
-            roomId={roomId || ''} 
-            userId={user?.id || ''}
-          />
-        </div>
-        
-        {/* Mobile Tabs for Playlist, Chat, and Users */}
-        {isMobile ? (
-          <div className="flex-1 overflow-hidden">
-            <Tabs defaultValue="playlist" className="h-full flex flex-col">
-              <TabsList className="grid grid-cols-3 bg-background border-t border-b border-white/10">
-                <TabsTrigger value="playlist" className="text-sm font-medium">
-                  Playlist
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="text-sm font-medium">
-                  Chat
-                </TabsTrigger>
-                <TabsTrigger value="users" className="text-sm font-medium">
-                  Users
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="playlist" className="flex-1 overflow-hidden p-0 m-0">
-                <div className="h-full">
-                  <PlaylistPanel 
-                    roomId={roomId || ''} 
-                    currentVideoId={currentVideoId}
-                    onPlayVideo={handlePlayVideo}
-                  />
-                </div>
-              </TabsContent>
-              <TabsContent value="chat" className="flex-1 overflow-hidden p-0 m-0">
-                <div className="h-full">
-                  <ChatPanel roomId={roomId || ''} />
-                </div>
-              </TabsContent>
-              <TabsContent value="users" className="flex-1 overflow-hidden p-0 m-0">
-                <div className="h-full">
-                  <RoomParticipants 
-                    roomId={roomId || ''} 
-                    currentUserId={user?.id || ''}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        ) : (
-          // Desktop Layout
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 p-4">
-            <div className="lg:col-span-3 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="min-h-screen bg-background p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto">
+          <header className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <CustomButton
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/home')}
+              >
+                <ArrowLeft size={18} />
+              </CustomButton>
+              <div>
+                <h1 className="text-xl font-bold">{room?.name}</h1>
+                <p className="text-xs text-muted-foreground">Room ID: {roomId}</p>
+              </div>
+            </div>
+          </header>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-3 space-y-6">
+              <VideoPlayer 
+                roomId={roomId || ''} 
+                userId={user?.id || ''}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="h-[400px]">
                   <PlaylistPanel 
                     roomId={roomId || ''} 
@@ -321,6 +221,7 @@ const Room = () => {
                 </div>
               </div>
             </div>
+            
             <div className="lg:col-span-1">
               <RoomParticipants 
                 roomId={roomId || ''} 
@@ -328,7 +229,7 @@ const Room = () => {
               />
             </div>
           </div>
-        )}
+        </div>
       </div>
     </PageTransition>
   );
