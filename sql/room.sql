@@ -99,10 +99,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create a scheduled function to run cleanup daily
--- Note: Requires pgAgent or similar scheduler to actually run this
--- Alternatively, you can use a cron job or serverless function to call this
-
 -- Enable Row Level Security
 ALTER TABLE video_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_participants ENABLE ROW LEVEL SECURITY;

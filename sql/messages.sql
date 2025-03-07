@@ -2,7 +2,7 @@
 -- Messages table for storing chat messages in rooms
 CREATE TABLE IF NOT EXISTS public.messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  room_id UUID NOT NULL REFERENCES public.video_rooms(id) ON DELETE CASCADE,
+  room_id TEXT NOT NULL REFERENCES public.video_rooms(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -55,7 +55,7 @@ CREATE POLICY "Allow users to update their own profile" ON public.profiles
 
 -- Ensure room_participants table has the correct structure
 CREATE TABLE IF NOT EXISTS public.room_participants (
-  room_id UUID NOT NULL REFERENCES public.video_rooms(id) ON DELETE CASCADE,
+  room_id TEXT NOT NULL REFERENCES public.video_rooms(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   last_active TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (room_id, user_id)
@@ -114,3 +114,32 @@ DROP TRIGGER IF EXISTS before_participant_insert ON public.room_participants;
 CREATE TRIGGER before_participant_insert
   BEFORE INSERT ON public.room_participants
   FOR EACH ROW EXECUTE FUNCTION public.update_room_participant();
+
+-- Create a function to delete user account and all associated data
+CREATE OR REPLACE FUNCTION public.delete_user_account()
+RETURNS void AS $$
+DECLARE
+  uid uuid;
+BEGIN
+  -- Get the current user's ID
+  uid := auth.uid();
+
+  -- Delete user's room participants records
+  DELETE FROM public.room_participants WHERE user_id = uid;
+  
+  -- Delete rooms created by the user
+  DELETE FROM public.video_rooms WHERE created_by = uid;
+  
+  -- Delete user's messages
+  DELETE FROM public.messages WHERE user_id = uid;
+  
+  -- Delete user's playlist items
+  DELETE FROM public.playlist_items WHERE added_by = uid;
+  
+  -- Delete user's playlists
+  DELETE FROM public.user_playlists WHERE user_id = uid;
+  
+  -- Delete user's profile
+  DELETE FROM public.profiles WHERE id = uid;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

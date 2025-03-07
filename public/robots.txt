@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://watchtube.com/sitemap.xml
+Sitemap: https://watchtube.fun/sitemap.xml
 
 # Disallow paths
 Disallow: /auth
