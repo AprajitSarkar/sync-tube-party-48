@@ -13,10 +13,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const ProfileMenu = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,14 +38,14 @@ const ProfileMenu = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="outline-none">
-        <Avatar className="h-8 w-8 border border-primary/20 hover:border-primary/50 transition-colors cursor-pointer">
+        <Avatar className={`border border-primary/20 hover:border-primary/50 transition-colors cursor-pointer ${isMobile ? 'h-7 w-7' : 'h-8 w-8'}`}>
           <AvatarImage src={user?.user_metadata?.avatar_url || ''} />
           <AvatarFallback className="bg-primary/10 text-primary">
             {getInitials()}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-56 z-50">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user?.email}</p>

@@ -3,6 +3,7 @@ import React from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import { Play, Trash2 } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PlaylistItemProps {
   videoItem: {
@@ -17,6 +18,8 @@ interface PlaylistItemProps {
 }
 
 const PlaylistItem = ({ videoItem, index, isPlaying, onPlay, onRemove }: PlaylistItemProps) => {
+  const isMobile = useIsMobile();
+
   return (
     <Draggable draggableId={videoItem.id} index={index}>
       {(provided, snapshot) => (
@@ -45,24 +48,49 @@ const PlaylistItem = ({ videoItem, index, isPlaying, onPlay, onRemove }: Playlis
             </p>
           </div>
           <div className="flex gap-1">
-            <CustomButton
-              size="icon"
-              variant="ghost"
-              onClick={() => onPlay(videoItem.videoId)}
-              className="h-7 w-7 text-white hover:bg-white/10"
-              title="Play now"
-            >
-              <Play size={14} className={isPlaying ? 'fill-primary/20' : ''} />
-            </CustomButton>
-            <CustomButton
-              size="icon"
-              variant="ghost"
-              onClick={() => onRemove(videoItem.id)}
-              className="h-7 w-7 text-white hover:bg-white/10 hover:text-red-400"
-              title="Remove from playlist"
-            >
-              <Trash2 size={14} />
-            </CustomButton>
+            {isMobile ? (
+              <>
+                <CustomButton
+                  size="sm"
+                  variant="glow"
+                  onClick={() => onPlay(videoItem.videoId)}
+                  className="text-white hover:bg-white/10"
+                  title="Play now"
+                >
+                  <Play size={14} className={isPlaying ? 'fill-primary/20' : ''} /> Play
+                </CustomButton>
+                <CustomButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onRemove(videoItem.id)}
+                  className="text-white hover:bg-white/10 hover:text-red-400"
+                  title="Remove from playlist"
+                >
+                  <Trash2 size={14} /> Remove
+                </CustomButton>
+              </>
+            ) : (
+              <>
+                <CustomButton
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onPlay(videoItem.videoId)}
+                  className="h-7 w-7 text-white hover:bg-white/10"
+                  title="Play now"
+                >
+                  <Play size={14} className={isPlaying ? 'fill-primary/20' : ''} />
+                </CustomButton>
+                <CustomButton
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onRemove(videoItem.id)}
+                  className="h-7 w-7 text-white hover:bg-white/10 hover:text-red-400"
+                  title="Remove from playlist"
+                >
+                  <Trash2 size={14} />
+                </CustomButton>
+              </>
+            )}
           </div>
         </div>
       )}

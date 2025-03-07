@@ -8,6 +8,7 @@ import { PlusCircle, Trash2, Eye, Edit, Check, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Playlist {
   id: string;
@@ -23,6 +24,8 @@ const UserPlaylistManager = () => {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [editingPlaylist, setEditingPlaylist] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchPlaylists();
@@ -59,6 +62,7 @@ const UserPlaylistManager = () => {
     if (!newPlaylistName.trim() || !user) return;
     
     try {
+      setIsCreating(true);
       const { data, error } = await supabase
         .from('user_playlists')
         .insert({
@@ -85,6 +89,8 @@ const UserPlaylistManager = () => {
         description: 'Failed to create playlist',
         variant: 'destructive'
       });
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -156,7 +162,7 @@ const UserPlaylistManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-3`}>
         <Input
           placeholder="New playlist name"
           value={newPlaylistName}
@@ -165,10 +171,14 @@ const UserPlaylistManager = () => {
         />
         <Button 
           onClick={createPlaylist}
-          disabled={!newPlaylistName.trim()}
-          className="shrink-0"
+          disabled={!newPlaylistName.trim() || isCreating}
+          className={`${isMobile ? 'w-full' : 'shrink-0'}`}
         >
-          <PlusCircle size={18} className="mr-2" />
+          {isCreating ? (
+            <LoadingSpinner size="sm" className="mr-2" />
+          ) : (
+            <PlusCircle size={18} className="mr-2" />
+          )}
           Create
         </Button>
       </div>
@@ -191,9 +201,9 @@ const UserPlaylistManager = () => {
               key={playlist.id}
               className="border border-white/10 rounded-lg p-4 bg-white/5"
             >
-              <div className="flex justify-between items-center">
+              <div className={`flex ${isMobile ? 'flex-col' : 'justify-between'} items-center gap-3`}>
                 {editingPlaylist === playlist.id ? (
-                  <div className="flex items-center gap-2 flex-grow">
+                  <div className="flex items-center gap-2 flex-grow w-full">
                     <Input
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
@@ -217,7 +227,7 @@ const UserPlaylistManager = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div>
+                  <div className={`${isMobile ? 'text-center w-full' : ''}`}>
                     <h3 className="font-medium">{playlist.name}</h3>
                     <p className="text-xs text-muted-foreground">
                       Created {new Date(playlist.created_at).toLocaleDateString()}
@@ -226,20 +236,41 @@ const UserPlaylistManager = () => {
                 )}
                 
                 {editingPlaylist !== playlist.id && (
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => startEditingPlaylist(playlist)}>
-                      <Edit size={16} />
+                  <div className={`flex gap-2 ${isMobile ? 'mt-3 w-full justify-center' : ''}`}>
+                    <Button size={isMobile ? "sm" : "icon"} variant="ghost" onClick={() => startEditingPlaylist(playlist)}>
+                      {isMobile ? (
+                        <>
+                          <Edit size={16} className="mr-2" />
+                          <span>Edit</span>
+                        </>
+                      ) : (
+                        <Edit size={16} />
+                      )}
                     </Button>
-                    <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-foreground">
-                      <Eye size={16} />
+                    <Button size={isMobile ? "sm" : "icon"} variant="ghost" className="text-muted-foreground hover:text-foreground">
+                      {isMobile ? (
+                        <>
+                          <Eye size={16} className="mr-2" />
+                          <span>View</span>
+                        </>
+                      ) : (
+                        <Eye size={16} />
+                      )}
                     </Button>
                     <Button 
-                      size="icon" 
+                      size={isMobile ? "sm" : "icon"} 
                       variant="ghost" 
                       className="text-muted-foreground hover:text-destructive"
                       onClick={() => deletePlaylist(playlist.id)}
                     >
-                      <Trash2 size={16} />
+                      {isMobile ? (
+                        <>
+                          <Trash2 size={16} className="mr-2" />
+                          <span>Delete</span>
+                        </>
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
                     </Button>
                   </div>
                 )}

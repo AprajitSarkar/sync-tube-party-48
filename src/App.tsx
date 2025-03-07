@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AnimatePresence } from "framer-motion";
 import ProfileMenu from "./components/common/ProfileMenu";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Pages
 import SplashScreen from "./pages/SplashScreen";
@@ -41,11 +42,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 // Profile Menu wrapper that only appears when logged in
 const ProfileMenuWrapper = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   
   if (!user) return null;
   
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className={`fixed ${isMobile ? 'top-2 right-2' : 'top-4 right-4'} z-50`}>
       <ProfileMenu />
     </div>
   );

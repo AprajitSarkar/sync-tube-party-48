@@ -71,7 +71,7 @@
   }
   
   .glass-effect {
-    border-radius: 0 !important;
+    border-radius: 12px !important;
   }
   
   .mobile-tab-active {
@@ -95,6 +95,27 @@
   /* Fix for mobile layout */
   .flex-1 {
     min-height: 0;  /* Allow flex containers to shrink */
+  }
+  
+  /* Improve form element spacing */
+  .space-y-6 > * {
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Ensure buttons are big enough to tap */
+  button {
+    min-height: 40px;
+    min-width: 40px;
+  }
+  
+  /* Ensure menu dropdown appears above other elements */
+  .dropdown-menu-content {
+    z-index: 100;
+  }
+  
+  /* Better spacing for mobile form controls */
+  .form-control {
+    margin-bottom: 1rem;
   }
 }
 
@@ -126,4 +147,10 @@ body {
 .input-wrap:focus-within {
   position: relative;
   z-index: 40;
+}
+
+/* Fix z-index issue for dropdown menus */
+.dropdown-content,
+[data-radix-popper-content-wrapper] {
+  z-index: 50 !important;
 }
