@@ -18,6 +18,7 @@ import Landing from "./pages/Landing";
 import Download from "./pages/Download";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,14 @@ const AppRoutes = () => (
       <Route path="/download" element={<Download />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/home"
         element={
