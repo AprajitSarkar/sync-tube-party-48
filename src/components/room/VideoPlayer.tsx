@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -32,10 +33,15 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const syncIntervalRef = useRef<number | null>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const apiLoadedRef = useRef(false);
+  const pendingVideoIdRef = useRef<string | null>(null);
 
+  // Load YouTube API once
   useEffect(() => {
     const loadYouTubeAPI = () => {
-      if (!window.YT) {
+      if (!window.YT && !apiLoadedRef.current) {
+        apiLoadedRef.current = true;
         const tag = document.createElement('script');
         tag.src = 'https://www.youtube.com/iframe_api';
         const firstScriptTag = document.getElementsByTagName('script')[0];
@@ -44,33 +50,48 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         } else {
           document.head.appendChild(tag);
         }
+
+        window.onYouTubeIframeAPIReady = () => {
+          console.log('YouTube API is ready');
+          if (pendingVideoIdRef.current) {
+            createPlayer(pendingVideoIdRef.current);
+          }
+        };
+      } else if (window.YT && window.YT.Player && pendingVideoIdRef.current) {
+        createPlayer(pendingVideoIdRef.current);
       }
     };
     
     loadYouTubeAPI();
 
-    const onYouTubeIframeAPIReady = () => {
-      if (!playerRef.current && videoId) {
-        createPlayer(videoId);
-      }
-    };
-
-    if (window.YT && window.YT.Player) {
-      onYouTubeIframeAPIReady();
-    } else {
-      window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-    }
-
     return () => {
       if (playerRef.current) {
         playerRef.current.destroy();
       }
-      if (syncIntervalRef.current) {
-        window.clearInterval(syncIntervalRef.current);
-      }
     };
+  }, []);
+
+  // Handle video ID changes
+  useEffect(() => {
+    if (videoId) {
+      console.log('Video ID changed to:', videoId);
+      pendingVideoIdRef.current = videoId;
+      
+      if (window.YT && window.YT.Player) {
+        if (playerRef.current) {
+          console.log('Loading video into existing player:', videoId);
+          playerRef.current.loadVideoById(videoId);
+        } else {
+          console.log('Creating new player with video:', videoId);
+          createPlayer(videoId);
+        }
+      } else {
+        console.log('YouTube API not ready, video ID will be loaded when ready');
+      }
+    }
   }, [videoId]);
 
+  // Set up room state subscription and sync interval
   useEffect(() => {
     const roomSubscription = supabase
       .channel(`room:${roomId}`)
@@ -104,6 +125,19 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     };
   }, [roomId, isPlaying]);
 
+  // Set up fullscreen change detection
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   const fetchRoomState = async () => {
     try {
       setIsLoading(true);
@@ -117,17 +151,11 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
 
       if (data && data.video_state) {
         const videoState = data.video_state as VideoState;
-        setVideoId(videoState.videoId || '');
-        setIsPlaying(videoState.isPlaying);
-
-        if (playerRef.current && videoState.currentTime) {
-          playerRef.current.seekTo(videoState.currentTime);
-          if (videoState.isPlaying) {
-            playerRef.current.playVideo();
-          } else {
-            playerRef.current.pauseVideo();
-          }
+        if (videoState.videoId) {
+          console.log('Fetched video ID from room state:', videoState.videoId);
+          setVideoId(videoState.videoId);
         }
+        setIsPlaying(videoState.isPlaying);
       }
     } catch (error) {
       console.error('Error fetching room state:', error);
@@ -146,9 +174,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     
     if (videoState.videoId && videoState.videoId !== videoId) {
       setVideoId(videoState.videoId);
-      if (playerRef.current) {
-        playerRef.current.loadVideoById(videoState.videoId);
-      }
     }
 
     if (videoState.isPlaying !== isPlaying) {
@@ -174,18 +199,35 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   };
 
   const createPlayer = (initialVideoId: string) => {
-    if (!initialVideoId || !window.YT) return;
+    console.log('Creating player with videoId:', initialVideoId);
+    if (!initialVideoId || !window.YT || !window.YT.Player) {
+      console.log('Cannot create player: missing videoId or YT API');
+      return;
+    }
     
     try {
       if (playerRef.current) {
+        console.log('Destroying existing player');
         playerRef.current.destroy();
+        playerRef.current = null;
       }
       
-      if (!document.getElementById('youtube-player')) {
+      if (!playerContainerRef.current) {
         console.error('YouTube player container not found');
         return;
       }
       
+      // Clear the container first
+      while (playerContainerRef.current.firstChild) {
+        playerContainerRef.current.removeChild(playerContainerRef.current.firstChild);
+      }
+      
+      // Create a div element for the player
+      const playerDiv = document.createElement('div');
+      playerDiv.id = 'youtube-player';
+      playerContainerRef.current.appendChild(playerDiv);
+      
+      console.log('Initializing YouTube player with video ID:', initialVideoId);
       playerRef.current = new window.YT.Player('youtube-player', {
         height: '100%',
         width: '100%',
@@ -195,6 +237,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
           modestbranding: 1,
           rel: 0,
           enablejsapi: 1,
+          origin: window.location.origin,
         },
         events: {
           onReady: onPlayerReady,
@@ -216,12 +259,22 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     }
   };
 
-  const onPlayerReady = () => {
+  const onPlayerReady = (event: YTPlayerEvent) => {
+    console.log('Player is ready');
     setIsPlayerReady(true);
     setIsLoading(false);
+    
+    const videoState = event.target.getVideoData();
+    console.log('Current video data:', videoState);
+    
+    // Apply stored state if needed
+    if (isPlaying) {
+      event.target.playVideo();
+    }
   };
 
   const onPlayerStateChange = (event: YTPlayerEvent) => {
+    console.log('Player state changed:', event.data);
     if (event.data === window.YT?.PlayerState.PLAYING) {
       setIsPlaying(true);
       updateRoomState(true);
@@ -295,8 +348,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         document.exitFullscreen();
       }
     }
-    
-    setIsFullscreen(!isFullscreen);
   };
 
   const extractVideoId = (url: string): string | null => {
@@ -383,6 +434,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
 
   const changeVideo = async (newVideoId: string) => {
     try {
+      console.log('Changing video to:', newVideoId);
       setVideoId(newVideoId);
       
       await supabase
@@ -446,6 +498,15 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     });
   };
 
+  // Set initial fallback video if none is present
+  const defaultVideoId = '9bZkp7q19f0'; // Gangnam Style as a fallback
+  useEffect(() => {
+    if (!videoId && !pendingVideoIdRef.current) {
+      console.log('No video ID found, using default:', defaultVideoId);
+      setVideoId(defaultVideoId);
+    }
+  }, [videoId]);
+
   return (
     <GlassCard className="p-0 overflow-hidden" ref={containerRef}>
       <div className="relative w-full aspect-video">
@@ -454,7 +515,10 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
             <LoadingSpinner size="lg" />
           </div>
         )}
-        <div id="youtube-player" className="w-full h-full" />
+        <div 
+          ref={playerContainerRef}
+          className="w-full h-full bg-black"
+        />
       </div>
       
       <div className="p-4 flex flex-col gap-4">
