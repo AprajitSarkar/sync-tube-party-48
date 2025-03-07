@@ -25,7 +25,7 @@ const Auth = () => {
     <div 
       className="min-h-screen flex flex-col items-center justify-center bg-background p-4"
       style={{
-        backgroundImage: "radial-gradient(circle at center, rgba(59, 130, 246, 0.05) 0%, transparent 70%)"
+        backgroundImage: "radial-gradient(circle at center, rgba(142, 45, 226, 0.08) 0%, transparent 70%)"
       }}
     >
       <motion.div

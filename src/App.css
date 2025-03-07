@@ -13,10 +13,10 @@
   transition: filter 300ms;
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 2em rgba(142, 45, 226, 0.7));
 }
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em rgba(236, 64, 122, 0.7));
 }
 
 @keyframes logo-spin {
@@ -45,9 +45,22 @@
 /* Enhanced text classes */
 .text-enhanced {
   color: #ffffff;
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 0 4px rgba(142, 45, 226, 0.4);
 }
 
 .text-enhanced-muted {
-  color: #c8c8c9;
+  color: #d5d5d8;
+}
+
+/* Custom buttons and inputs */
+.input-glow:focus {
+  box-shadow: 0 0 0 2px rgba(142, 45, 226, 0.3);
+}
+
+.button-gradient {
+  background: linear-gradient(135deg, #bd4de8 0%, #ec407a 100%);
+}
+
+.button-gradient:hover {
+  background: linear-gradient(135deg, #c95df0 0%, #f16d9e 100%);
 }

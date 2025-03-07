@@ -7,37 +7,38 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 100%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 100%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 213 94% 75%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 5% 25%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 240 5% 25%;
+    --background: 235 16% 8%;
+    --foreground: 210 40% 98%;
+    --card: 235 16% 10%;
+    --card-foreground: 210 40% 98%;
+    --popover: 235 16% 10%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 278 94% 77%;
+    --primary-foreground: 235 16% 10%;
+    --secondary: 235 20% 20%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 235 20% 20%;
     --muted-foreground: 240 5% 84.9%;
-    --accent: 213 94% 75%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72.8% 50.6%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 240 5% 25.9%;
-    --input: 240 5% 25.9%;
-    --ring: 212 100% 75%;
+    --accent: 325 90% 75%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 235 20% 30%;
+    --input: 235 20% 30%;
+    --ring: 278 94% 77%;
     --radius: 1rem;
   }
 }
 
 @layer base {
   * {
-    @apply border-border selection:bg-accent/10 selection:text-accent;
+    @apply border-border selection:bg-accent/20 selection:text-accent;
   }
   
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+    background-image: radial-gradient(circle at center, rgba(142, 45, 226, 0.1) 0%, transparent 80%);
   }
 
   html {
@@ -56,7 +57,7 @@
   }
 
   .glass-effect {
-    @apply backdrop-blur-xl bg-white/10 border border-white/20 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)];
+    @apply backdrop-blur-xl bg-white/10 border border-white/20 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.4)];
   }
   
   .neo-blur {
@@ -64,11 +65,11 @@
   }
   
   .text-gradient {
-    @apply bg-gradient-to-br from-white via-white to-white/90 bg-clip-text text-transparent;
+    @apply bg-gradient-to-br from-primary via-primary/90 to-accent/90 bg-clip-text text-transparent;
   }
   
   .subtle-glow {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 20px rgba(142, 45, 226, 0.25);
   }
   
   .animate-slide-up {

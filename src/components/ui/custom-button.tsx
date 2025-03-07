@@ -11,11 +11,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "glass-effect hover:bg-white/10 active:scale-[0.98] active:bg-white/15",
+          "glass-effect hover:bg-white/15 active:scale-[0.98] active:bg-white/20",
         outline:
           "bg-transparent border border-white/20 hover:border-white/40 hover:bg-white/5",
         ghost: "bg-transparent hover:bg-white/5",
-        glow: "bg-primary/20 hover:bg-primary/30 subtle-glow before:absolute before:inset-0 before:bg-primary/10 before:blur-xl before:opacity-0 hover:before:opacity-100 before:transition-opacity",
+        glow: "bg-gradient-to-r from-primary/90 to-accent/90 hover:from-primary hover:to-accent subtle-glow before:absolute before:inset-0 before:bg-primary/10 before:blur-xl before:opacity-0 hover:before:opacity-100 before:transition-opacity",
       },
       size: {
         default: "h-12 px-6 py-3 rounded-xl text-base",

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -245,7 +244,7 @@ const Home = () => {
       <div 
         className="min-h-screen bg-background p-4 sm:p-6"
         style={{
-          backgroundImage: "radial-gradient(circle at center, rgba(59, 130, 246, 0.05) 0%, transparent 70%)"
+          backgroundImage: "radial-gradient(circle at center, rgba(142, 45, 226, 0.08) 0%, transparent 70%)"
         }}
       >
         <div className="max-w-4xl mx-auto">
@@ -266,14 +265,14 @@ const Home = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <GlassCard>
-              <h2 className="text-xl font-medium mb-4">Create Room</h2>
+              <h2 className="text-xl font-medium mb-4 text-enhanced">Create Room</h2>
               <div className="space-y-4">
                 <div>
                   <Input
                     placeholder="Room name"
                     value={newRoomName}
                     onChange={(e) => setNewRoomName(e.target.value)}
-                    className="bg-white/5 border-white/10"
+                    className="bg-white/5 border-white/20 input-glow"
                   />
                 </div>
                 <CustomButton
@@ -288,14 +287,14 @@ const Home = () => {
             </GlassCard>
             
             <GlassCard>
-              <h2 className="text-xl font-medium mb-4">Join Room</h2>
+              <h2 className="text-xl font-medium mb-4 text-enhanced">Join Room</h2>
               <div className="space-y-4">
                 <div>
                   <Input
                     placeholder="Room ID"
                     value={joinRoomId}
                     onChange={(e) => setJoinRoomId(e.target.value)}
-                    className="bg-white/5 border-white/10"
+                    className="bg-white/5 border-white/20 input-glow"
                   />
                 </div>
                 <CustomButton
@@ -310,7 +309,7 @@ const Home = () => {
           </div>
           
           <GlassCard>
-            <h2 className="text-xl font-medium mb-4">Recent Rooms</h2>
+            <h2 className="text-xl font-medium mb-4 text-enhanced">Recent Rooms</h2>
             
             {isLoading ? (
               <div className="flex justify-center py-8">
@@ -333,7 +332,7 @@ const Home = () => {
                     className="cursor-pointer"
                   >
                     <GlassCard 
-                      className="p-4 hover:bg-white/10 transition-all duration-200"
+                      className="p-4 hover:bg-white/15 transition-all duration-200"
                       intensity="light"
                     >
                       <div className="flex justify-between items-center">
@@ -342,8 +341,8 @@ const Home = () => {
                             <Play size={18} className="text-accent ml-1" />
                           </div>
                           <div>
-                            <h3 className="font-medium">{room.name}</h3>
-                            <p className="text-xs text-muted-foreground">
+                            <h3 className="font-medium text-enhanced">{room.name}</h3>
+                            <p className="text-xs text-enhanced-muted">
                               Last accessed {formatDistanceToNow(new Date(room.last_accessed), { addSuffix: true })}
                             </p>
                           </div>

@@ -47,7 +47,7 @@ const AuthForm = () => {
     >
       <GlassCard className="p-6 sm:p-8">
         <div className="mb-6 text-center">
-          <h2 className="text-2xl font-bold mb-1">
+          <h2 className="text-2xl font-bold mb-1 text-enhanced">
             {isSignUp ? 'Create Account' : 'Welcome Back'}
           </h2>
           <p className="text-muted-foreground">
@@ -64,12 +64,12 @@ const AuthForm = () => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-enhanced-muted">Email</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="your@email.com" 
                       {...field} 
-                      className="h-12 bg-white/5 border-white/10 focus-visible:ring-accent"
+                      className="h-12 bg-white/5 border-white/20 focus-visible:ring-primary input-glow"
                     />
                   </FormControl>
                   <FormMessage />
@@ -82,13 +82,13 @@ const AuthForm = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-enhanced-muted">Password</FormLabel>
                   <FormControl>
                     <Input 
                       type="password" 
                       placeholder="••••••••" 
                       {...field} 
-                      className="h-12 bg-white/5 border-white/10 focus-visible:ring-accent"
+                      className="h-12 bg-white/5 border-white/20 focus-visible:ring-primary input-glow"
                     />
                   </FormControl>
                   <FormMessage />
@@ -109,7 +109,7 @@ const AuthForm = () => {
         </Form>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-enhanced-muted">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
             <button
               onClick={() => setIsSignUp(!isSignUp)}
