@@ -13,6 +13,12 @@ import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import Room from "./pages/Room";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
+import DownloadPage from "./pages/DownloadPage";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsConditions from "./pages/TermsConditions";
+import Profile from "./pages/Profile";
+import ForgotPassword from "./pages/ForgotPassword";
 
 const queryClient = new QueryClient();
 
@@ -34,8 +40,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => (
   <AnimatePresence mode="wait">
     <Routes>
-      <Route path="/" element={<SplashScreen />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/splash" element={<SplashScreen />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route
         path="/home"
         element={
@@ -52,6 +60,17 @@ const AppRoutes = () => (
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/download" element={<DownloadPage />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsConditions />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </AnimatePresence>
