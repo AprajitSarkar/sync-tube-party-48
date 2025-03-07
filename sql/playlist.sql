@@ -2,7 +2,7 @@
 -- Create playlist_items table for storing videos in a room's playlist
 CREATE TABLE IF NOT EXISTS public.playlist_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  room_id UUID NOT NULL REFERENCES public.video_rooms(id) ON DELETE CASCADE,
+  room_id TEXT NOT NULL REFERENCES public.video_rooms(id) ON DELETE CASCADE,
   video_id TEXT NOT NULL,
   title TEXT NOT NULL,
   added_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE SET NULL,

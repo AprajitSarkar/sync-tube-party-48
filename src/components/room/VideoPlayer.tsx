@@ -36,6 +36,8 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const apiLoadedRef = useRef(false);
   const pendingVideoIdRef = useRef<string | null>(null);
+  const remoteUpdateRef = useRef(false);
+  const lastSyncTimeRef = useRef(0);
 
   // Load YouTube API once
   useEffect(() => {
@@ -110,10 +112,25 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
 
     fetchRoomState();
 
+    // More frequent sync interval for better synchronization
     syncIntervalRef.current = window.setInterval(() => {
-      if (playerRef.current && isPlaying) {
-        const time = playerRef.current.getCurrentTime();
-        setCurrentTime(time);
+      try {
+        if (playerRef.current && isPlayerReady) {
+          const now = Date.now();
+          // Only sync every 3 seconds to avoid flooding
+          if (now - lastSyncTimeRef.current > 3000) {
+            lastSyncTimeRef.current = now;
+            const currentPlayerTime = playerRef.current.getCurrentTime();
+            setCurrentTime(currentPlayerTime);
+          
+            // Check if we should send a sync update
+            if (isPlaying && !remoteUpdateRef.current) {
+              updateRoomState(true, currentPlayerTime);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error in sync interval:', error);
       }
     }, 1000);
 
@@ -123,7 +140,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         window.clearInterval(syncIntervalRef.current);
       }
     };
-  }, [roomId, isPlaying]);
+  }, [roomId, isPlaying, isPlayerReady]);
 
   // Set up fullscreen change detection
   useEffect(() => {
@@ -154,8 +171,12 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         if (videoState.videoId) {
           console.log('Fetched video ID from room state:', videoState.videoId);
           setVideoId(videoState.videoId);
+          setIsPlaying(videoState.isPlaying);
+          // Store the initial time to seek to once player is ready
+          if (videoState.currentTime > 0) {
+            setCurrentTime(videoState.currentTime);
+          }
         }
-        setIsPlaying(videoState.isPlaying);
       }
     } catch (error) {
       console.error('Error fetching room state:', error);
@@ -171,30 +192,44 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
 
   const handleRemoteStateChange = (videoState: VideoState) => {
     console.log('Remote state change:', videoState);
+    remoteUpdateRef.current = true;
     
-    if (videoState.videoId && videoState.videoId !== videoId) {
-      setVideoId(videoState.videoId);
-    }
+    try {
+      // If this is a new video, load it
+      if (videoState.videoId && videoState.videoId !== videoId) {
+        setVideoId(videoState.videoId);
+      }
 
-    if (videoState.isPlaying !== isPlaying) {
-      setIsPlaying(videoState.isPlaying);
-      if (playerRef.current) {
-        if (videoState.isPlaying) {
-          playerRef.current.playVideo();
-        } else {
-          playerRef.current.pauseVideo();
+      // Handle play/pause state changes
+      if (videoState.isPlaying !== isPlaying) {
+        setIsPlaying(videoState.isPlaying);
+        if (playerRef.current && isPlayerReady) {
+          if (videoState.isPlaying) {
+            playerRef.current.playVideo();
+          } else {
+            playerRef.current.pauseVideo();
+          }
         }
       }
-    }
 
-    if (playerRef.current && videoState.currentTime !== undefined) {
-      const currentTime = playerRef.current.getCurrentTime();
-      const timeDiff = Math.abs(currentTime - videoState.currentTime);
-      
-      if (timeDiff > 3) {
-        console.log('Syncing time:', videoState.currentTime);
-        playerRef.current.seekTo(videoState.currentTime);
+      // Handle time synchronization
+      if (playerRef.current && isPlayerReady && videoState.currentTime !== undefined) {
+        const currentPlayerTime = playerRef.current.getCurrentTime();
+        const timeDiff = Math.abs(currentPlayerTime - videoState.currentTime);
+        
+        // If the time difference is more than 3 seconds, sync
+        if (timeDiff > 3) {
+          console.log(`Syncing time: ${videoState.currentTime}s (diff: ${timeDiff}s)`);
+          playerRef.current.seekTo(videoState.currentTime, true);
+        }
       }
+    } catch (error) {
+      console.error('Error handling remote state change:', error);
+    } finally {
+      // Reset the remote update flag after a short delay
+      setTimeout(() => {
+        remoteUpdateRef.current = false;
+      }, 1000);
     }
   };
 
@@ -269,6 +304,11 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       console.log('Current video data:', videoData);
       
       // Apply stored state if needed
+      if (currentTime > 0) {
+        console.log(`Seeking to saved time: ${currentTime}s`);
+        event.target.seekTo(currentTime, true);
+      }
+      
       if (isPlaying) {
         event.target.playVideo();
       }
@@ -279,20 +319,44 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
 
   const onPlayerStateChange = (event: YTPlayerEvent) => {
     console.log('Player state changed:', event.data);
-    if (event.data === window.YT?.PlayerState.PLAYING) {
-      setIsPlaying(true);
-      updateRoomState(true);
-    } else if (event.data === window.YT?.PlayerState.PAUSED) {
-      setIsPlaying(false);
-      updateRoomState(false);
+    
+    // Only update state if this wasn't triggered by a remote update
+    if (!remoteUpdateRef.current) {
+      if (event.data === window.YT?.PlayerState.PLAYING) {
+        setIsPlaying(true);
+        
+        try {
+          const currentPlayerTime = event.target.getCurrentTime();
+          updateRoomState(true, currentPlayerTime);
+        } catch (error) {
+          console.error('Error getting current time:', error);
+        }
+      } else if (event.data === window.YT?.PlayerState.PAUSED) {
+        setIsPlaying(false);
+        
+        try {
+          const currentPlayerTime = event.target.getCurrentTime();
+          updateRoomState(false, currentPlayerTime);
+        } catch (error) {
+          console.error('Error getting current time:', error);
+        }
+      }
     }
   };
 
-  const updateRoomState = async (playing: boolean) => {
+  const updateRoomState = async (playing: boolean, time?: number) => {
     try {
       if (!playerRef.current) return;
       
-      const currentTime = playerRef.current.getCurrentTime();
+      let currentPlayerTime = time;
+      if (currentPlayerTime === undefined) {
+        try {
+          currentPlayerTime = playerRef.current.getCurrentTime();
+        } catch (error) {
+          console.error('Error getting current time:', error);
+          currentPlayerTime = currentTime;
+        }
+      }
       
       await supabase
         .from('video_rooms')
@@ -300,7 +364,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
           video_state: {
             isPlaying: playing,
             timestamp: Date.now(),
-            currentTime: Math.floor(currentTime),
+            currentTime: Math.floor(currentPlayerTime),
             videoId
           }
         })
@@ -311,33 +375,47 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   };
 
   const togglePlayPause = () => {
-    if (!playerRef.current) return;
+    if (!playerRef.current || !isPlayerReady) return;
     
-    if (isPlaying) {
-      playerRef.current.pauseVideo();
-    } else {
-      playerRef.current.playVideo();
+    try {
+      if (isPlaying) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
+    } catch (error) {
+      console.error('Error toggling play/pause:', error);
     }
   };
 
   const skipForward = () => {
-    if (!playerRef.current) return;
+    if (!playerRef.current || !isPlayerReady) return;
     
-    const currentTime = playerRef.current.getCurrentTime();
-    const newTime = currentTime + 10;
-    playerRef.current.seekTo(newTime);
-    
-    updateRoomState(isPlaying);
+    try {
+      const currentPlayerTime = playerRef.current.getCurrentTime();
+      const newTime = currentPlayerTime + 10;
+      playerRef.current.seekTo(newTime, true);
+      
+      // Update room state immediately for better sync
+      updateRoomState(isPlaying, newTime);
+    } catch (error) {
+      console.error('Error skipping forward:', error);
+    }
   };
 
   const skipBackward = () => {
-    if (!playerRef.current) return;
+    if (!playerRef.current || !isPlayerReady) return;
     
-    const currentTime = playerRef.current.getCurrentTime();
-    const newTime = Math.max(0, currentTime - 10);
-    playerRef.current.seekTo(newTime);
-    
-    updateRoomState(isPlaying);
+    try {
+      const currentPlayerTime = playerRef.current.getCurrentTime();
+      const newTime = Math.max(0, currentPlayerTime - 10);
+      playerRef.current.seekTo(newTime, true);
+      
+      // Update room state immediately for better sync
+      updateRoomState(isPlaying, newTime);
+    } catch (error) {
+      console.error('Error skipping backward:', error);
+    }
   };
 
   const toggleFullscreen = () => {

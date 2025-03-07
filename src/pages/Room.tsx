@@ -65,6 +65,9 @@ const Room = () => {
     return () => {
       clearInterval(presenceInterval);
       roomSubscription.unsubscribe();
+      
+      // When user leaves, clean up presence and check if room is empty
+      cleanupPresence();
     };
   }, [roomId, user, navigate]);
 
@@ -112,6 +115,37 @@ const Room = () => {
         });
     } catch (error) {
       console.error('Error updating presence:', error);
+    }
+  };
+  
+  const cleanupPresence = async () => {
+    if (!roomId || !user) return;
+    
+    try {
+      // Remove user from participants
+      await supabase
+        .from('room_participants')
+        .delete()
+        .eq('room_id', roomId)
+        .eq('user_id', user.id);
+        
+      // Check if the room is now empty
+      const { data, error } = await supabase
+        .from('room_participants')
+        .select('id')
+        .eq('room_id', roomId);
+        
+      if (error) throw error;
+      
+      // If room is empty, delete it to save storage
+      if (data && data.length === 0) {
+        await supabase
+          .from('video_rooms')
+          .delete()
+          .eq('id', roomId);
+      }
+    } catch (error) {
+      console.error('Error cleaning up presence:', error);
     }
   };
 

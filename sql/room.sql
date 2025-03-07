@@ -1,10 +1,32 @@
 
--- Video rooms table
+-- Add extension for UUID support
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Add extension for generating random strings (used for short room IDs)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Function to generate short room IDs (5 characters)
+CREATE OR REPLACE FUNCTION generate_short_id(length integer DEFAULT 5)
+RETURNS text AS $$
+DECLARE
+  chars text := 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  result text := '';
+  i integer := 0;
+BEGIN
+  FOR i IN 1..length LOOP
+    result := result || substr(chars, floor(random() * length(chars) + 1)::integer, 1);
+  END LOOP;
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+-- Video rooms table with short IDs
 CREATE TABLE video_rooms (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id TEXT PRIMARY KEY DEFAULT generate_short_id(),
   name TEXT NOT NULL,
   created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_activity TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   video_state JSONB DEFAULT '{
     "isPlaying": false,
     "timestamp": 0,
@@ -12,6 +34,21 @@ CREATE TABLE video_rooms (
     "videoId": ""
   }'::jsonb
 );
+
+-- Add function to update last_activity timestamp
+CREATE OR REPLACE FUNCTION update_room_activity()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.last_activity := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to update last_activity when room is updated
+CREATE TRIGGER update_room_last_activity
+  BEFORE UPDATE ON video_rooms
+  FOR EACH ROW
+  EXECUTE FUNCTION update_room_activity();
 
 -- Trigger to delete related data when a room is deleted
 CREATE OR REPLACE FUNCTION delete_room_related_data()
@@ -38,7 +75,7 @@ CREATE TRIGGER before_room_delete
 -- Room participants (for tracking users in rooms)
 CREATE TABLE room_participants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  room_id UUID NOT NULL REFERENCES video_rooms(id) ON DELETE CASCADE,
+  room_id TEXT NOT NULL REFERENCES video_rooms(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(room_id, user_id)
@@ -47,6 +84,24 @@ CREATE TABLE room_participants (
 -- Index for faster room participant queries
 CREATE INDEX room_participants_room_id_idx ON room_participants(room_id);
 CREATE INDEX room_participants_user_id_idx ON room_participants(user_id);
+
+-- Function to clean up inactive rooms (no activity for 24 hours)
+CREATE OR REPLACE FUNCTION cleanup_inactive_rooms()
+RETURNS void AS $$
+BEGIN
+  -- Delete rooms with no activity for 24 hours
+  DELETE FROM video_rooms
+  WHERE last_activity < NOW() - INTERVAL '24 hours';
+  
+  -- Delete participant records with no activity for 2 hours
+  DELETE FROM room_participants
+  WHERE last_active < NOW() - INTERVAL '2 hours';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create a scheduled function to run cleanup daily
+-- Note: Requires pgAgent or similar scheduler to actually run this
+-- Alternatively, you can use a cron job or serverless function to call this
 
 -- Enable Row Level Security
 ALTER TABLE video_rooms ENABLE ROW LEVEL SECURITY;
@@ -71,8 +126,13 @@ CREATE POLICY "Room creators can update their own rooms"
   ON video_rooms 
   FOR UPDATE 
   TO authenticated 
-  USING (auth.uid() = created_by)
-  WITH CHECK (auth.uid() = created_by);
+  USING (auth.uid() = created_by OR
+        -- Allow all participants to update video_state
+        EXISTS (
+          SELECT 1 FROM room_participants
+          WHERE room_participants.room_id = video_rooms.id
+          AND room_participants.user_id = auth.uid()
+        ));
 
 -- Only room creators can delete their own rooms
 CREATE POLICY "Room creators can delete their own rooms" 
