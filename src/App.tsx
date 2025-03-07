@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AnimatePresence } from "framer-motion";
+import ProfileMenu from "./components/common/ProfileMenu";
 
 // Pages
 import SplashScreen from "./pages/SplashScreen";
@@ -34,6 +36,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   return <>{children}</>;
+};
+
+// Profile Menu wrapper that only appears when logged in
+const ProfileMenuWrapper = () => {
+  const { user } = useAuth();
+  
+  if (!user) return null;
+  
+  return (
+    <div className="fixed top-4 right-4 z-50">
+      <ProfileMenu />
+    </div>
+  );
 };
 
 const AppRoutes = () => (
@@ -82,6 +97,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <ProfileMenuWrapper />
           <AppRoutes />
         </AuthProvider>
       </BrowserRouter>
