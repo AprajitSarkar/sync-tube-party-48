@@ -8,24 +8,24 @@
 @layer base {
   :root {
     --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    --foreground: 0 0% 100%;
     --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card-foreground: 0 0% 100%;
     --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 213 94% 68%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 213 94% 75%;
     --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 213 94% 68%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 212 100% 70%;
+    --secondary: 240 5% 25%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 5% 25%;
+    --muted-foreground: 240 5% 84.9%;
+    --accent: 213 94% 75%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72.8% 50.6%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 5% 25.9%;
+    --input: 240 5% 25.9%;
+    --ring: 212 100% 75%;
     --radius: 1rem;
   }
 }
@@ -56,19 +56,19 @@
   }
 
   .glass-effect {
-    @apply backdrop-blur-xl bg-white/5 border border-white/10 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)];
+    @apply backdrop-blur-xl bg-white/10 border border-white/20 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)];
   }
   
   .neo-blur {
-    @apply backdrop-blur-2xl bg-black/40 border border-white/10;
+    @apply backdrop-blur-2xl bg-black/60 border border-white/20;
   }
   
   .text-gradient {
-    @apply bg-gradient-to-br from-white via-white/90 to-white/70 bg-clip-text text-transparent;
+    @apply bg-gradient-to-br from-white via-white to-white/90 bg-clip-text text-transparent;
   }
   
   .subtle-glow {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
   }
   
   .animate-slide-up {

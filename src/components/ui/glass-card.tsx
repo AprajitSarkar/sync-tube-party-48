@@ -9,9 +9,9 @@ interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const intensityMap = {
-  light: "bg-white/5",
-  medium: "bg-white/10",
-  heavy: "bg-white/15",
+  light: "bg-white/10",
+  medium: "bg-white/15",
+  heavy: "bg-white/20",
 };
 
 const paddingMap = {
@@ -39,7 +39,7 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
           "backdrop-blur-xl rounded-2xl transition-all",
           intensityMap[intensity],
           paddingMap[padding],
-          withBorder && "border border-white/10",
+          withBorder && "border border-white/20",
           className
         )}
         ref={ref}
