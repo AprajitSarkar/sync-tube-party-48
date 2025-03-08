@@ -13,6 +13,7 @@ import { LogIn, UserPlus, Send } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -59,6 +60,15 @@ const AuthForm = () => {
     
     try {
       if (isSignUp) {
+        if (!data.acceptTerms) {
+          toast({
+            title: "Terms Required",
+            description: "You must accept the terms and conditions to create an account",
+            variant: "destructive"
+          });
+          return;
+        }
+        
         await signUp(data.email, data.password);
         setShowWelcomeDialog(true);
         navigate('/home');

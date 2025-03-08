@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -135,22 +136,36 @@ const Home = () => {
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error("Room creation error:", error);
+        throw error;
+      }
       
-      await supabase
+      // Make sure the room participant entry is created after room is created
+      const { error: participantError } = await supabase
         .from('room_participants')
         .insert({
           room_id: data.id,
           user_id: user?.id,
           last_active: new Date().toISOString()
         });
+        
+      if (participantError) {
+        console.error("Participant creation error:", participantError);
+        throw participantError;
+      }
+      
+      toast({
+        title: 'Room Created',
+        description: `Successfully created room "${data.name}"`
+      });
       
       navigate(`/room/${data.id}`);
     } catch (error) {
       console.error('Error creating room:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create room',
+        description: 'Failed to create room. Please try again.',
         variant: 'destructive'
       });
     } finally {
