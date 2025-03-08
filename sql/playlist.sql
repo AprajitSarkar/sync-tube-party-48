@@ -62,9 +62,10 @@ CREATE TABLE IF NOT EXISTS public.user_playlists (
   UNIQUE(user_id, playlist_name)
 );
 
+-- Update the user_playlist_items table with a more comprehensive structure
 CREATE TABLE IF NOT EXISTS public.user_playlist_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  playlist_id UUID NOT NULL REFERENCES public.user_playlists(id) ON DELETE CASCADE,
+  playlist_id UUID REFERENCES public.user_playlists(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   video_id TEXT NOT NULL,
   playlist_name TEXT NOT NULL,

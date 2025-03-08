@@ -7,6 +7,9 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Default YouTube API key
+const DEFAULT_YOUTUBE_API_KEY = 'AIzaSyB-qDaqVOnqVjiSIYfxJl2SZRySLjG9SR0';
+
 interface PlaylistEditorProps {
   playlistId: string;
   onVideoAdded: () => void;
@@ -26,9 +29,14 @@ const PlaylistEditor = ({ playlistId, onVideoAdded }: PlaylistEditorProps) => {
 
   const addVideoToPlaylist = async (videoId: string) => {
     try {
+      // Use the stored API key from local storage or fall back to the default key
+      const storedKey = user?.id ? localStorage.getItem(`youtube_api_key_${user.id}`) : null;
+      const apiKey = storedKey || DEFAULT_YOUTUBE_API_KEY;
+      
       const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${import.meta.env.VITE_YOUTUBE_API_KEY}`
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`
       );
+      
       const data = await response.json();
 
       if (!data.items?.[0]) {
@@ -60,6 +68,7 @@ const PlaylistEditor = ({ playlistId, onVideoAdded }: PlaylistEditorProps) => {
           video_id: videoId,
           title: videoTitle,
           position: nextPosition,
+          playlist_name: '' // Add empty string as a fallback
         });
 
       if (error) throw error;
@@ -108,13 +117,22 @@ const PlaylistEditor = ({ playlistId, onVideoAdded }: PlaylistEditorProps) => {
     
     try {
       setIsAdding(true);
+      
+      // Use the stored API key from local storage or fall back to the default key
+      const storedKey = user?.id ? localStorage.getItem(`youtube_api_key_${user.id}`) : null;
+      const apiKey = storedKey || DEFAULT_YOUTUBE_API_KEY;
+      
       const response = await fetch(
         `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
           searchQuery
-        )}&type=video&key=${import.meta.env.VITE_YOUTUBE_API_KEY}`
+        )}&type=video&key=${apiKey}`
       );
       
       const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
       
       if (!data.items?.[0]) {
         toast({

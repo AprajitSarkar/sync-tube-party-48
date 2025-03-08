@@ -11,6 +11,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import LogToast from '@/components/common/LogToast';
 
+const DEFAULT_YOUTUBE_API_KEY = 'AIzaSyB-qDaqVOnqVjiSIYfxJl2SZRySLjG9SR0';
+
 interface PlaylistPanelProps {
   roomId: string;
   currentVideoId: string;
@@ -196,7 +198,11 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
       setIsSearching(true);
       showLog("Searching videos...");
       
-      const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&type=video&q=${encodeURIComponent(query)}&key=YOUR_YOUTUBE_API_KEY`);
+      const userId = user?.id;
+      const storedKey = userId ? localStorage.getItem(`youtube_api_key_${userId}`) : null;
+      const apiKey = storedKey || DEFAULT_YOUTUBE_API_KEY;
+      
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&type=video&q=${encodeURIComponent(query)}&key=${apiKey}`);
       const data = await response.json();
       
       if (data.error) {
@@ -759,3 +765,4 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
 };
 
 export default PlaylistPanel;
+

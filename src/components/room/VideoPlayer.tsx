@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -7,6 +6,9 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useAuth } from '@/contexts/AuthContext';
+
+const DEFAULT_YOUTUBE_API_KEY = 'AIzaSyB-qDaqVOnqVjiSIYfxJl2SZRySLjG9SR0';
 
 interface VideoPlayerProps {
   roomId: string;
@@ -21,6 +23,7 @@ interface VideoState {
 }
 
 const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
+  const { user } = useAuth();
   const playerRef = useRef<YT.Player | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoId, setVideoId] = useState<string>('');
@@ -84,7 +87,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
           console.log('Loading video into existing player:', videoId);
           playerRef.current.loadVideoById(videoId);
           
-          // Enable background playback for mobile
           if (playerRef.current.getIframe()) {
             playerRef.current.getIframe().allow = "autoplay; fullscreen; picture-in-picture";
           }
@@ -176,11 +178,9 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
             setCurrentTime(videoState.currentTime);
           }
         } else {
-          // No video ID in the room state
           setShowEmptyState(true);
         }
       } else {
-        // No video state in the room
         setShowEmptyState(true);
       }
     } catch (error) {
@@ -200,14 +200,12 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     remoteUpdateRef.current = true;
     
     try {
-      // Only change the video if it's different and not empty
       if (videoState.videoId && videoState.videoId !== videoId) {
         console.log(`Setting video from remote update: ${videoState.videoId}`);
         setVideoId(videoState.videoId);
         setShowEmptyState(false);
       }
 
-      // Update play state
       if (videoState.isPlaying !== isPlaying) {
         setIsPlaying(videoState.isPlaying);
         if (playerRef.current && isPlayerReady && videoState.videoId === videoId) {
@@ -219,7 +217,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         }
       }
 
-      // Sync time if significant difference
       if (playerRef.current && isPlayerReady && videoState.videoId === videoId && videoState.currentTime !== undefined) {
         const currentPlayerTime = playerRef.current.getCurrentTime();
         const timeDiff = Math.abs(currentPlayerTime - videoState.currentTime);
@@ -280,7 +277,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         events: {
           onReady: (event) => {
             onPlayerReady(event);
-            // Enable background playback after player is ready
             const iframe = event.target.getIframe();
             if (iframe) {
               iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
@@ -468,6 +464,46 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       setIsSearching(true);
       setSearchResults([]);
       
+      const storedKey = userId ? localStorage.getItem(`youtube_api_key_${userId}`) : null;
+      const apiKey = storedKey || DEFAULT_YOUTUBE_API_KEY;
+      
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(urlInput)}&type=video&key=${apiKey}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+      
+      if (!data.items || data.items.length === 0) {
+        toast({
+          title: 'No results',
+          description: 'No videos found for your search',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const results = data.items.map((item: any) => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.default.url
+      }));
+      
+      setSearchResults(results);
+      
+    } catch (error) {
+      console.error('Error searching videos:', error);
+      fallbackSearchFromYouTube();
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const fallbackSearchFromYouTube = async () => {
+    try {
       const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(urlInput)}`;
       const response = await fetch(searchUrl);
       const html = await response.text();
@@ -504,14 +540,12 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         });
       }
     } catch (error) {
-      console.error('Error searching videos:', error);
+      console.error('Error in fallback search:', error);
       toast({
         title: 'Error',
         description: 'Failed to search videos',
         variant: 'destructive'
       });
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -698,7 +732,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
                   className="flex items-center gap-2 p-2 hover:bg-white/10 rounded-md cursor-pointer transition-colors"
                 >
                   <img 
-                    src={`https://i.ytimg.com/vi/${result.id}/default.jpg`}
+                    src={result.thumbnail}
                     alt={result.title}
                     className="w-16 h-12 object-cover rounded"
                   />

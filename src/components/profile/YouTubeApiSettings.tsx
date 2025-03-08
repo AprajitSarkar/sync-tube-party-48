@@ -6,6 +6,9 @@ import { AlertCircle, Save, Key } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+// Default YouTube API key
+const DEFAULT_YOUTUBE_API_KEY = 'AIzaSyB-qDaqVOnqVjiSIYfxJl2SZRySLjG9SR0';
+
 type YouTubeApiSettingsProps = {
   userId: string | undefined;
 };
@@ -16,6 +19,7 @@ const YouTubeApiSettings: React.FC<YouTubeApiSettingsProps> = ({ userId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const [isUsingDefault, setIsUsingDefault] = useState(false);
 
   // Load saved API key from localStorage on component mount
   useEffect(() => {
@@ -24,6 +28,10 @@ const YouTubeApiSettings: React.FC<YouTubeApiSettingsProps> = ({ userId }) => {
       if (storedKey) {
         setSavedKey(storedKey);
         setApiKey(storedKey);
+        setIsUsingDefault(false);
+      } else {
+        // If no key is saved, indicate we're using the default
+        setIsUsingDefault(true);
       }
     }
   }, [userId]);
@@ -34,9 +42,10 @@ const YouTubeApiSettings: React.FC<YouTubeApiSettingsProps> = ({ userId }) => {
     setIsLoading(true);
     
     try {
-      // Save to localStorage (in a real app, you might want to encrypt this or store it on the server)
+      // Save to localStorage
       localStorage.setItem(`youtube_api_key_${userId}`, apiKey);
       setSavedKey(apiKey);
+      setIsUsingDefault(false);
       
       toast({
         title: "API Key Saved",
@@ -47,6 +56,34 @@ const YouTubeApiSettings: React.FC<YouTubeApiSettingsProps> = ({ userId }) => {
       toast({
         title: "Error Saving API Key",
         description: "There was a problem saving your API key. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const useDefaultKey = () => {
+    if (!userId) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // Remove any saved key to fall back to the default
+      localStorage.removeItem(`youtube_api_key_${userId}`);
+      setSavedKey(null);
+      setApiKey('');
+      setIsUsingDefault(true);
+      
+      toast({
+        title: "Using Default API Key",
+        description: "You are now using the default YouTube API key.",
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "There was a problem reverting to the default API key. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -82,6 +119,12 @@ const YouTubeApiSettings: React.FC<YouTubeApiSettingsProps> = ({ userId }) => {
               </div>
             )}
             
+            {isUsingDefault && (
+              <div className="text-xs text-accent">
+                Using default API key: {DEFAULT_YOUTUBE_API_KEY.substring(0, 6)}...
+              </div>
+            )}
+            
             <div className="text-xs text-muted-foreground flex items-start gap-2">
               <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
               <span>
@@ -92,7 +135,7 @@ const YouTubeApiSettings: React.FC<YouTubeApiSettingsProps> = ({ userId }) => {
               </span>
             </div>
             
-            <div className={`${isMobile ? 'flex justify-center' : ''}`}>
+            <div className={`flex gap-2 ${isMobile ? 'justify-center' : ''}`}>
               <CustomButton
                 variant="outline"
                 onClick={saveApiKey}
@@ -101,6 +144,14 @@ const YouTubeApiSettings: React.FC<YouTubeApiSettingsProps> = ({ userId }) => {
                 icon={<Save size={16} />}
               >
                 Save API Key
+              </CustomButton>
+              
+              <CustomButton
+                variant="ghost"
+                onClick={useDefaultKey}
+                disabled={isUsingDefault}
+              >
+                Use Default Key
               </CustomButton>
             </div>
           </div>

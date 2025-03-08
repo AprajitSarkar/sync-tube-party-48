@@ -83,7 +83,7 @@ CREATE TRIGGER update_participant_last_activity
 CREATE OR REPLACE FUNCTION cleanup_inactive_rooms()
 RETURNS void AS $$
 BEGIN
-  -- Only mark participants inactive after 30 minutes, don't delete them
+  -- Mark participants as inactive after 30 minutes of inactivity, don't delete them
   UPDATE room_participants
   SET last_active = NOW() - INTERVAL '31 minutes'
   WHERE last_active < NOW() - INTERVAL '30 minutes';
