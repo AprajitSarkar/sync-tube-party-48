@@ -1,17 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Input } from '@/components/ui/input';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Search, Plus, Play, Save } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase, DEFAULT_YOUTUBE_API_KEY } from '@/lib/supabase';
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 import PlaylistItem from './PlaylistItem';
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import LogToast from '@/components/common/LogToast';
-
-const DEFAULT_YOUTUBE_API_KEY = 'AIzaSyB-qDaqVOnqVjiSIYfxJl2SZRySLjG9SR0';
 
 interface PlaylistPanelProps {
   roomId: string;
@@ -35,14 +34,14 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
   const [isSearching, setIsSearching] = useState(false);
   const { user } = useAuth();
   const [showSaveOptions, setShowSaveOptions] = useState<{[key: string]: boolean}>({});
-  const [userPlaylists, setUserPlaylists] = useState<string[]>([]);
+  const [userPlaylists, setUserPlaylists] = useState<any[]>([]);
   const [logMessage, setLogMessage] = useState('');
   const [logVisible, setLogVisible] = useState(false);
 
   useEffect(() => {
     fetchPlaylist();
     if (user) {
-      fetchUserPlaylistNames();
+      fetchUserPlaylists();
     }
 
     const playlistSubscription = supabase
@@ -71,21 +70,20 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     setLogVisible(false);
   };
 
-  const fetchUserPlaylistNames = async () => {
+  const fetchUserPlaylists = async () => {
     if (!user) return;
     
     try {
       const { data, error } = await supabase
         .from('user_playlists')
-        .select('playlist_name')
+        .select('*')
         .eq('user_id', user.id);
         
       if (error) throw error;
       
-      const uniqueNames = [...new Set((data || []).map(item => item.playlist_name))];
-      setUserPlaylists(uniqueNames);
+      setUserPlaylists(data || []);
     } catch (error) {
-      console.error('Error fetching user playlist names:', error);
+      console.error('Error fetching user playlists:', error);
     }
   };
 
@@ -336,17 +334,17 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     }
   };
 
-  const saveToUserPlaylist = async (videoId: string, title: string, playlistName: string) => {
+  const saveToUserPlaylist = async (videoId: string, title: string, playlist: any) => {
     if (!user) return;
     
     try {
-      showLog(`Saving to "${playlistName}"...`);
+      showLog(`Saving to "${playlist.name}"...`);
       
       const { data: positionData, error: positionError } = await supabase
         .from('user_playlist_items')
         .select('position')
         .eq('user_id', user.id)
-        .eq('playlist_name', playlistName)
+        .eq('playlist_id', playlist.id)
         .order('position', { ascending: false })
         .limit(1);
         
@@ -358,7 +356,7 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         .from('user_playlist_items')
         .insert({
           user_id: user.id,
-          playlist_name: playlistName,
+          playlist_id: playlist.id,
           video_id: videoId,
           title,
           position: maxPosition + 1
@@ -371,7 +369,7 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
       showLog("Saved to playlist");
       toast({
         title: 'Success',
-        description: `Saved to "${playlistName}" playlist`,
+        description: `Saved to "${playlist.name}" playlist`,
       });
     } catch (error) {
       console.error('Error saving to user playlist:', error);
@@ -471,20 +469,23 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     try {
       showLog("Creating new playlist...");
       
-      const { error: playlistError } = await supabase
+      const { data, error: playlistError } = await supabase
         .from('user_playlists')
         .insert({
           user_id: user.id,
-          playlist_name: newPlaylistName.trim()
-        });
+          name: newPlaylistName.trim()
+        })
+        .select()
+        .single();
         
       if (playlistError) throw playlistError;
       
+      // Now add the video to the new playlist
       const { error: itemError } = await supabase
         .from('user_playlist_items')
         .insert({
           user_id: user.id,
-          playlist_name: newPlaylistName.trim(),
+          playlist_id: data.id,
           video_id: videoId,
           title,
           position: 0
@@ -492,7 +493,8 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         
       if (itemError) throw itemError;
       
-      setUserPlaylists(prev => [...prev, newPlaylistName.trim()]);
+      // Update the local playlists state
+      setUserPlaylists(prev => [...prev, data]);
       
       toggleSaveOptions(videoId);
       

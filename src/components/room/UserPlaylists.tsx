@@ -39,7 +39,7 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
             .from('user_playlist_items')
             .select('*')
             .eq('user_id', user?.id)
-            .eq('playlist_name', playlist.playlist_name)
+            .eq('playlist_id', playlist.id)
             .order('position', { ascending: true });
 
           if (itemsError) throw itemsError;
@@ -112,15 +112,14 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
           user_id: user?.id,
           video_id: videoId,
           title: title,
-          position: nextPosition,
-          playlist_name: playlist.playlist_name
+          position: nextPosition
         });
 
       if (error) throw error;
 
       toast({
         title: 'Success',
-        description: `Video saved to ${playlist.playlist_name}`,
+        description: `Video saved to ${playlist.name}`,
       });
 
       // Refresh playlists
@@ -142,7 +141,7 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
       {playlists.map((playlist) => (
         <GlassCard key={playlist.id} className="p-4" intensity="light">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium">{playlist.playlist_name}</h3>
+            <h3 className="font-medium">{playlist.name}</h3>
             <CustomButton
               size="sm"
               variant="glow"

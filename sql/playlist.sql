@@ -57,9 +57,9 @@ CREATE POLICY "Allow users to delete playlist items they added" ON public.playli
 CREATE TABLE IF NOT EXISTS public.user_playlists (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  playlist_name TEXT NOT NULL,
+  name TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(user_id, playlist_name)
+  UNIQUE(user_id, name)
 );
 
 -- Update the user_playlist_items table with a more comprehensive structure
@@ -68,7 +68,6 @@ CREATE TABLE IF NOT EXISTS public.user_playlist_items (
   playlist_id UUID REFERENCES public.user_playlists(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   video_id TEXT NOT NULL,
-  playlist_name TEXT NOT NULL,
   title TEXT NOT NULL,
   position INTEGER NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -78,7 +77,6 @@ CREATE TABLE IF NOT EXISTS public.user_playlist_items (
 CREATE INDEX IF NOT EXISTS idx_user_playlists_user_id ON public.user_playlists(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_playlist_items_playlist_id ON public.user_playlist_items(playlist_id);
 CREATE INDEX IF NOT EXISTS idx_user_playlist_items_user_id ON public.user_playlist_items(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_playlist_items_playlist_name ON public.user_playlist_items(playlist_name);
 
 -- Enable RLS
 ALTER TABLE public.user_playlists ENABLE ROW LEVEL SECURITY;

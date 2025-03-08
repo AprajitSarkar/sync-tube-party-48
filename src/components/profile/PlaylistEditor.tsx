@@ -4,11 +4,8 @@ import { Input } from '@/components/ui/input';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Plus, Search, ExternalLink } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase, DEFAULT_YOUTUBE_API_KEY } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-
-// Default YouTube API key
-const DEFAULT_YOUTUBE_API_KEY = 'AIzaSyB-qDaqVOnqVjiSIYfxJl2SZRySLjG9SR0';
 
 interface PlaylistEditorProps {
   playlistId: string;
@@ -67,8 +64,7 @@ const PlaylistEditor = ({ playlistId, onVideoAdded }: PlaylistEditorProps) => {
           user_id: user?.id,
           video_id: videoId,
           title: videoTitle,
-          position: nextPosition,
-          playlist_name: '' // Add empty string as a fallback
+          position: nextPosition
         });
 
       if (error) throw error;
