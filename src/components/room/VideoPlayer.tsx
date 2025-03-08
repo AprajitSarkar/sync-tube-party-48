@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -118,15 +119,18 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
 
     fetchRoomState();
 
+    // More frequent sync interval to ensure better desktop synchronization
     syncIntervalRef.current = window.setInterval(() => {
       try {
         if (playerRef.current && isPlayerReady) {
           const now = Date.now();
-          if (now - lastSyncTimeRef.current > 3000) {
+          // Reduce the sync interval for more frequent synchronization
+          if (now - lastSyncTimeRef.current > 2000) { // Reduced from 3000ms to 2000ms
             lastSyncTimeRef.current = now;
             const currentPlayerTime = playerRef.current.getCurrentTime();
             setCurrentTime(currentPlayerTime);
           
+            // Always send sync updates when playing to ensure consistent state
             if (isPlaying && !remoteUpdateRef.current) {
               updateRoomState(true, currentPlayerTime);
             }
@@ -206,16 +210,20 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         setShowEmptyState(false);
       }
 
-      const isRemoteStateChange = Math.abs(Date.now() - videoState.timestamp) < 10000; // Within 10 seconds
+      // Increased time window to handle potential network delays
+      const isRemoteStateChange = Math.abs(Date.now() - videoState.timestamp) < 15000; // Increased from 10s to 15s
       
       if (videoState.isPlaying !== isPlaying && isRemoteStateChange) {
         console.log(`Remote play state change to: ${videoState.isPlaying ? 'play' : 'pause'}`);
         setIsPlaying(videoState.isPlaying);
         
         if (playerRef.current && isPlayerReady && videoState.videoId === videoId) {
+          // Force immediate state change for better synchronization
           if (videoState.isPlaying) {
+            console.log('Remote triggered play');
             playerRef.current.playVideo();
           } else {
+            console.log('Remote triggered pause');
             playerRef.current.pauseVideo();
           }
         }
@@ -225,7 +233,8 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         const currentPlayerTime = playerRef.current.getCurrentTime();
         const timeDiff = Math.abs(currentPlayerTime - videoState.currentTime);
         
-        if (timeDiff > 3 && isRemoteStateChange) {
+        // Reduced threshold for tighter synchronization
+        if (timeDiff > 2 && isRemoteStateChange) { // Reduced from 3s to 2s for tighter sync
           console.log(`Syncing time: ${videoState.currentTime}s (diff: ${timeDiff}s)`);
           playerRef.current.seekTo(videoState.currentTime, true);
         }
@@ -233,9 +242,10 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     } catch (error) {
       console.error('Error handling remote state change:', error);
     } finally {
+      // Shorter debounce time for more responsive syncing
       setTimeout(() => {
         remoteUpdateRef.current = false;
-      }, 1000);
+      }, 800); // Reduced from 1000ms to 800ms
     }
   };
 
@@ -331,19 +341,23 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     
     if (!remoteUpdateRef.current) {
       if (event.data === window.YT?.PlayerState.PLAYING) {
+        console.log('Local player state: PLAYING');
         setIsPlaying(true);
         
         try {
           const currentPlayerTime = event.target.getCurrentTime();
+          // Ensure timely update for better synchronization
           updateRoomState(true, currentPlayerTime);
         } catch (error) {
           console.error('Error getting current time:', error);
         }
       } else if (event.data === window.YT?.PlayerState.PAUSED) {
+        console.log('Local player state: PAUSED');
         setIsPlaying(false);
         
         try {
           const currentPlayerTime = event.target.getCurrentTime();
+          // Always send immediate update on pause
           updateRoomState(false, currentPlayerTime);
         } catch (error) {
           console.error('Error getting current time:', error);
@@ -368,6 +382,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       
       console.log(`Updating room state: playing=${playing}, time=${currentPlayerTime}`);
       
+      // Use immediate, non-batched database update for critical state changes
       await supabase
         .from('video_rooms')
         .update({
@@ -391,13 +406,17 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       const newPlayState = !isPlaying;
       console.log(`Manual toggle play/pause to: ${newPlayState ? 'play' : 'pause'}`);
       
+      // Immediately update state before player action to prevent race conditions
+      setIsPlaying(newPlayState);
+      
       if (newPlayState) {
         playerRef.current.playVideo();
       } else {
         playerRef.current.pauseVideo();
       }
       
-      // We don't need to call updateRoomState here as the onPlayerStateChange handler will do it
+      // Force an immediate state update to database to ensure synchronization
+      updateRoomState(newPlayState, playerRef.current.getCurrentTime());
     } catch (error) {
       console.error('Error toggling play/pause:', error);
     }
@@ -762,4 +781,3 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
 };
 
 export default VideoPlayer;
-
