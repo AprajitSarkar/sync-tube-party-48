@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Draggable } from 'react-beautiful-dnd';
-import { Play, Trash2, Plus } from 'lucide-react';
+import { Play, Trash2, BookmarkPlus } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 
 interface PlaylistItemProps {
@@ -65,16 +65,16 @@ const PlaylistItem = ({
                   <Play size={10} className={isPlaying ? 'fill-primary/20' : ''} />
                   <span className="ml-0.5">Play</span>
                 </CustomButton>
-                
+
                 {onAddToUserPlaylist && (
                   <CustomButton
                     size="sm"
                     variant="ghost"
                     onClick={() => onAddToUserPlaylist(videoItem.videoId, videoItem.title)}
                     className="h-5 px-1.5 text-[10px] text-white hover:bg-white/10 min-w-0"
-                    title="Add to my playlist"
+                    title="Save to playlist"
                   >
-                    <Plus size={10} />
+                    <BookmarkPlus size={10} />
                     <span className="ml-0.5">Save</span>
                   </CustomButton>
                 )}

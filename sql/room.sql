@@ -1,4 +1,5 @@
--- Add extension for UUID support
+
+-- Create extension for UUID support
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Add extension for generating random strings (used for short room IDs)
@@ -20,7 +21,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 -- Video rooms table with short IDs
-CREATE TABLE video_rooms (
+CREATE TABLE IF NOT EXISTS video_rooms (
   id TEXT PRIMARY KEY DEFAULT generate_short_id(),
   name TEXT NOT NULL,
   created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -34,7 +35,7 @@ CREATE TABLE video_rooms (
   }'::jsonb
 );
 
--- Add function to update last_activity timestamp
+-- Function to update last_activity timestamp
 CREATE OR REPLACE FUNCTION update_room_activity()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -49,30 +50,8 @@ CREATE TRIGGER update_room_last_activity
   FOR EACH ROW
   EXECUTE FUNCTION update_room_activity();
 
--- Trigger to delete related data when a room is deleted
-CREATE OR REPLACE FUNCTION delete_room_related_data()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Delete messages associated with the room
-  DELETE FROM messages WHERE room_id = OLD.id;
-  
-  -- Delete playlist items associated with the room
-  DELETE FROM playlist_items WHERE room_id = OLD.id;
-  
-  -- Delete room participants
-  DELETE FROM room_participants WHERE room_id = OLD.id;
-  
-  RETURN OLD;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER before_room_delete
-  BEFORE DELETE ON video_rooms
-  FOR EACH ROW
-  EXECUTE FUNCTION delete_room_related_data();
-
--- Room participants (for tracking users in rooms)
-CREATE TABLE room_participants (
+-- Room participants
+CREATE TABLE IF NOT EXISTS room_participants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   room_id TEXT NOT NULL REFERENCES video_rooms(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -80,15 +59,35 @@ CREATE TABLE room_participants (
   UNIQUE(room_id, user_id)
 );
 
--- Index for faster room participant queries
-CREATE INDEX room_participants_room_id_idx ON room_participants(room_id);
-CREATE INDEX room_participants_user_id_idx ON room_participants(user_id);
+-- Index for faster participant queries
+CREATE INDEX IF NOT EXISTS idx_room_participants_room_id ON room_participants(room_id);
+CREATE INDEX IF NOT EXISTS idx_room_participants_user_id ON room_participants(user_id);
+CREATE INDEX IF NOT EXISTS idx_room_participants_last_active ON room_participants(last_active);
 
--- Function to clean up inactive rooms (modified to keep rooms with participants)
+-- Function to update participant last_active timestamp
+CREATE OR REPLACE FUNCTION update_participant_activity()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.last_active := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to update last_active when participant is updated
+CREATE TRIGGER update_participant_last_activity
+  BEFORE UPDATE ON room_participants
+  FOR EACH ROW
+  EXECUTE FUNCTION update_participant_activity();
+
+-- Function to clean up inactive participants and rooms
 CREATE OR REPLACE FUNCTION cleanup_inactive_rooms()
 RETURNS void AS $$
 BEGIN
-  -- Only delete rooms that have no participants for 24 hours
+  -- Delete participants inactive for more than 30 minutes
+  DELETE FROM room_participants
+  WHERE last_active < NOW() - INTERVAL '30 minutes';
+  
+  -- Only delete rooms that have no participants and no activity for 24 hours
   DELETE FROM video_rooms
   WHERE id IN (
     SELECT v.id 
@@ -97,106 +96,56 @@ BEGIN
     WHERE p.id IS NULL 
     AND v.last_activity < NOW() - INTERVAL '24 hours'
   );
-  
-  -- Delete participant records with no activity for 2 hours
-  DELETE FROM room_participants
-  WHERE last_active < NOW() - INTERVAL '2 hours';
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to keep only last 3 rooms per user
-CREATE OR REPLACE FUNCTION cleanup_old_rooms()
-RETURNS void AS $$
-BEGIN
-  DELETE FROM video_rooms
-  WHERE id IN (
-    SELECT id
-    FROM (
-      SELECT id,
-             ROW_NUMBER() OVER (PARTITION BY created_by ORDER BY last_activity DESC) as rn
-      FROM video_rooms
-    ) ranked
-    WHERE rn > 3
-  );
-END;
-$$ LANGUAGE plpgsql;
-
--- Enable Row Level Security
+-- Enable RLS
 ALTER TABLE video_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_participants ENABLE ROW LEVEL SECURITY;
 
--- Policy for video_rooms table
--- Anyone can view public rooms
+-- Policies for video_rooms
 CREATE POLICY "Anyone can view rooms" 
-  ON video_rooms 
-  FOR SELECT 
-  USING (true);
+  ON video_rooms FOR SELECT USING (true);
 
--- Only authenticated users can create rooms
-CREATE POLICY "Authenticated users can create rooms" 
-  ON video_rooms 
-  FOR INSERT 
+CREATE POLICY "Users can create rooms" 
+  ON video_rooms FOR INSERT 
   TO authenticated 
   WITH CHECK (auth.uid() = created_by);
 
--- Only room creators can update their own rooms
-CREATE POLICY "Room creators can update their own rooms" 
-  ON video_rooms 
-  FOR UPDATE 
+CREATE POLICY "Room creators and participants can update rooms" 
+  ON video_rooms FOR UPDATE 
   TO authenticated 
-  USING (auth.uid() = created_by OR
-        -- Allow all participants to update video_state
-        EXISTS (
-          SELECT 1 FROM room_participants
-          WHERE room_participants.room_id = video_rooms.id
-          AND room_participants.user_id = auth.uid()
-        ));
+  USING (
+    auth.uid() = created_by OR
+    EXISTS (
+      SELECT 1 FROM room_participants
+      WHERE room_participants.room_id = video_rooms.id
+      AND room_participants.user_id = auth.uid()
+      AND room_participants.last_active > NOW() - INTERVAL '30 minutes'
+    )
+  );
 
--- Only room creators can delete their own rooms
-CREATE POLICY "Room creators can delete their own rooms" 
-  ON video_rooms 
-  FOR DELETE 
+CREATE POLICY "Room creators can delete their rooms" 
+  ON video_rooms FOR DELETE 
   TO authenticated 
   USING (auth.uid() = created_by);
 
--- Policies for room_participants table
--- Anyone can view participants in a room
-CREATE POLICY "Anyone can view room participants" 
-  ON room_participants 
-  FOR SELECT 
+-- Policies for room_participants
+CREATE POLICY "Anyone can view participants" 
+  ON room_participants FOR SELECT 
   USING (true);
 
--- Users can insert themselves as participants
-CREATE POLICY "Users can add themselves as participants" 
-  ON room_participants 
-  FOR INSERT 
+CREATE POLICY "Users can join rooms" 
+  ON room_participants FOR INSERT 
   TO authenticated 
   WITH CHECK (auth.uid() = user_id);
 
--- Users can update their own participant data
-CREATE POLICY "Users can update their own participant data" 
-  ON room_participants 
-  FOR UPDATE 
-  TO authenticated 
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
--- Users can delete their own participant data
-CREATE POLICY "Users can delete their own participant data" 
-  ON room_participants 
-  FOR DELETE 
+CREATE POLICY "Users can update their presence" 
+  ON room_participants FOR UPDATE 
   TO authenticated 
   USING (auth.uid() = user_id);
 
--- Room creators can manage all participants in their rooms
-CREATE POLICY "Room creators can manage all participants" 
-  ON room_participants 
-  FOR ALL 
+CREATE POLICY "Users can leave rooms" 
+  ON room_participants FOR DELETE 
   TO authenticated 
-  USING (
-    EXISTS (
-      SELECT 1 FROM video_rooms 
-      WHERE video_rooms.id = room_participants.room_id 
-      AND video_rooms.created_by = auth.uid()
-    )
-  );
+  USING (auth.uid() = user_id);
