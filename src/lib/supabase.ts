@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Use environment variables with fallbacks for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://fuxqhggfgsbdkeynbbub.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1eHFoZ2dmZ3NiZGtleW5iYnViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MTQwNDgsImV4cCI6MjA1Njk5MDA0OH0.3CG3HFDXJXkx0EcnCQs6SO5wIQw8seKeNToe-b3h-Y0';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ptqxfkwcmahssxcxxcun.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0cXhma3djbWFoc3N4Y3h4Y3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MjMxNjYsImV4cCI6MjA1Njk5OTE2Nn0.V01ZVfSj5JAeH0nHT4dLoKSFWX-Mg5crSvGvScrOolY';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
