@@ -206,8 +206,12 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         setShowEmptyState(false);
       }
 
-      if (videoState.isPlaying !== isPlaying) {
+      const isRemoteStateChange = Math.abs(Date.now() - videoState.timestamp) < 10000; // Within 10 seconds
+      
+      if (videoState.isPlaying !== isPlaying && isRemoteStateChange) {
+        console.log(`Remote play state change to: ${videoState.isPlaying ? 'play' : 'pause'}`);
         setIsPlaying(videoState.isPlaying);
+        
         if (playerRef.current && isPlayerReady && videoState.videoId === videoId) {
           if (videoState.isPlaying) {
             playerRef.current.playVideo();
@@ -221,7 +225,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         const currentPlayerTime = playerRef.current.getCurrentTime();
         const timeDiff = Math.abs(currentPlayerTime - videoState.currentTime);
         
-        if (timeDiff > 3) {
+        if (timeDiff > 3 && isRemoteStateChange) {
           console.log(`Syncing time: ${videoState.currentTime}s (diff: ${timeDiff}s)`);
           playerRef.current.seekTo(videoState.currentTime, true);
         }
@@ -362,6 +366,8 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         }
       }
       
+      console.log(`Updating room state: playing=${playing}, time=${currentPlayerTime}`);
+      
       await supabase
         .from('video_rooms')
         .update({
@@ -382,11 +388,16 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
     if (!playerRef.current || !isPlayerReady) return;
     
     try {
-      if (isPlaying) {
-        playerRef.current.pauseVideo();
-      } else {
+      const newPlayState = !isPlaying;
+      console.log(`Manual toggle play/pause to: ${newPlayState ? 'play' : 'pause'}`);
+      
+      if (newPlayState) {
         playerRef.current.playVideo();
+      } else {
+        playerRef.current.pauseVideo();
       }
+      
+      // We don't need to call updateRoomState here as the onPlayerStateChange handler will do it
     } catch (error) {
       console.error('Error toggling play/pause:', error);
     }
@@ -751,3 +762,4 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
 };
 
 export default VideoPlayer;
+
