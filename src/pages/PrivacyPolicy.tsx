@@ -27,7 +27,7 @@ const PrivacyPolicy = () => {
                 <section>
                   <h2 className="text-xl font-semibold mb-3">Introduction</h2>
                   <p className="mb-3">
-                    Welcome to SyncTube Party ("we," "our," or "us"). We respect your privacy and are committed to protecting your personal data.
+                    Welcome to WatchTube ("we," "our," or "us"). We respect your privacy and are committed to protecting your personal data.
                     This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service.
                   </p>
                   <p>
@@ -98,7 +98,7 @@ const PrivacyPolicy = () => {
                 <section>
                   <h2 className="text-xl font-semibold mb-3">Contact Us</h2>
                   <p>
-                    If you have any questions about this Privacy Policy, please contact us at support@synctubeparty.com.
+                    If you have any questions about this Privacy Policy, please contact us at cozmoim@gmail.com.
                   </p>
                 </section>
               </div>

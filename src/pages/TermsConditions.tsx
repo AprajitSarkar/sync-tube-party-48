@@ -27,7 +27,7 @@ const TermsConditions = () => {
                 <section>
                   <h2 className="text-xl font-semibold mb-3">Agreement to Terms</h2>
                   <p>
-                    By accessing or using SyncTube Party ("the Service"), you agree to be bound by these Terms and Conditions ("Terms"). 
+                    By accessing or using WatchTube ("the Service"), you agree to be bound by these Terms and Conditions ("Terms"). 
                     If you disagree with any part of the terms, you may not access the Service.
                   </p>
                 </section>
@@ -35,7 +35,7 @@ const TermsConditions = () => {
                 <section>
                   <h2 className="text-xl font-semibold mb-3">Description of Service</h2>
                   <p>
-                    SyncTube Party is a service that allows users to watch YouTube videos synchronously with others, 
+                    WatchTube is a service that allows users to watch YouTube videos synchronously with others, 
                     communicate via chat, and manage shared playlists. The Service is provided "as is" and "as available" without warranties of any kind.
                   </p>
                 </section>
@@ -71,7 +71,7 @@ const TermsConditions = () => {
                 <section>
                   <h2 className="text-xl font-semibold mb-3">Intellectual Property</h2>
                   <p>
-                    The Service and its original content, features, and functionality are owned by SyncTube Party and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
+                    The Service and its original content, features, and functionality are owned by WatchTube and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
                   </p>
                 </section>
                 
@@ -95,7 +95,7 @@ const TermsConditions = () => {
                 <section>
                   <h2 className="text-xl font-semibold mb-3">Limitation of Liability</h2>
                   <p>
-                    In no event shall SyncTube Party, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.
+                    In no event shall WatchTube, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.
                   </p>
                 </section>
                 
@@ -110,7 +110,7 @@ const TermsConditions = () => {
                 <section>
                   <h2 className="text-xl font-semibold mb-3">Contact Us</h2>
                   <p>
-                    If you have any questions about these Terms, please contact us at support@synctubeparty.com.
+                    If you have any questions about these Terms, please contact us at cozmoim@gmail.com.
                   </p>
                 </section>
               </div>

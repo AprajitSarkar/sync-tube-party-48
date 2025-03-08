@@ -64,7 +64,7 @@ const SplashScreen = () => {
           transition={{ delay: 0.5, duration: 0.5 }}
           className="text-3xl font-bold mb-2 text-gradient"
         >
-          Sync Tube Party
+          WatchTube
         </motion.h1>
         
         <motion.p

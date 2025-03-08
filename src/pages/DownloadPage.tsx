@@ -23,9 +23,9 @@ const DownloadPage = () => {
             transition={{ duration: 0.5 }}
             className="text-center mb-12"
           >
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gradient">Download SyncTube Party</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gradient">Download WatchTube</h1>
             <p className="text-muted-foreground">
-              Get SyncTube Party on your mobile device or desktop for the best experience
+              Get WatchTube on your mobile device or desktop for the best experience
             </p>
           </motion.div>
           
@@ -42,7 +42,7 @@ const DownloadPage = () => {
                   </div>
                   <h2 className="text-2xl font-semibold mb-4 text-center">Mobile App</h2>
                   <p className="text-muted-foreground mb-6 text-center">
-                    Download the SyncTube Party mobile app for a seamless experience on your smartphone or tablet.
+                    Download the WatchTube mobile app for a seamless experience on your smartphone or tablet.
                   </p>
                   <div className="mt-auto flex flex-col gap-4">
                     <a href="https://play.google.com/store/apps/details?id=com.multiple.cozmo" target="_blank" rel="noopener noreferrer">
@@ -74,7 +74,7 @@ const DownloadPage = () => {
                   </div>
                   <h2 className="text-2xl font-semibold mb-4 text-center">Web App</h2>
                   <p className="text-muted-foreground mb-6 text-center">
-                    Access SyncTube Party directly from your web browser on any device without installation.
+                    Access WatchTube directly from your web browser on any device without installation.
                   </p>
                   <div className="mt-auto">
                     <Link to="/auth">
@@ -96,7 +96,7 @@ const DownloadPage = () => {
             className="mt-12 text-center"
           >
             <p className="text-muted-foreground mb-4">
-              By downloading or using SyncTube Party, you agree to our
+              By downloading or using WatchTube, you agree to our
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link to="/terms" className="text-accent hover:underline transition-colors">
