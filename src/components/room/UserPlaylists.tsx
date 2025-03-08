@@ -26,15 +26,22 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
 
   const fetchUserPlaylists = async () => {
     try {
+      setIsLoading(true);
+      
+      // Fetch playlists
       const { data: playlistsData, error: playlistsError } = await supabase
         .from('user_playlists')
         .select('*')
         .eq('user_id', user?.id);
 
-      if (playlistsError) throw playlistsError;
+      if (playlistsError) {
+        console.error('Error fetching playlists:', playlistsError);
+        throw playlistsError;
+      }
 
+      // Fetch playlist items for each playlist
       const playlistsWithItems = await Promise.all(
-        playlistsData.map(async (playlist) => {
+        (playlistsData || []).map(async (playlist) => {
           const { data: items, error: itemsError } = await supabase
             .from('user_playlist_items')
             .select('*')
@@ -42,7 +49,10 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
             .eq('playlist_id', playlist.id)
             .order('position', { ascending: true });
 
-          if (itemsError) throw itemsError;
+          if (itemsError) {
+            console.error('Error fetching playlist items:', itemsError);
+            throw itemsError;
+          }
 
           return {
             ...playlist,
@@ -92,15 +102,24 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
   };
 
   const saveVideoToPlaylist = async (videoId: string, title: string, playlist: any) => {
+    if (!user || !playlist?.id) {
+      return;
+    }
+    
     setIsSaving(true);
     try {
       // Get current max position
-      const { data: currentItems } = await supabase
+      const { data: currentItems, error: positionError } = await supabase
         .from('user_playlist_items')
         .select('position')
         .eq('playlist_id', playlist.id)
         .order('position', { ascending: false })
         .limit(1);
+        
+      if (positionError) {
+        console.error('Error getting position:', positionError);
+        throw positionError;
+      }
 
       const nextPosition = (currentItems?.[0]?.position ?? -1) + 1;
 
@@ -115,7 +134,10 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
           position: nextPosition
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving video:', error);
+        throw error;
+      }
 
       toast({
         title: 'Success',
@@ -138,55 +160,70 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
 
   return (
     <div className="space-y-4">
-      {playlists.map((playlist) => (
-        <GlassCard key={playlist.id} className="p-4" intensity="light">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium">{playlist.name}</h3>
-            <CustomButton
-              size="sm"
-              variant="glow"
-              onClick={() => playEntirePlaylist(playlist.items)}
-              icon={<Play size={16} />}
-            >
-              Play All
-            </CustomButton>
-          </div>
-          <div className="space-y-2">
-            {playlist.items.map((item: any) => (
-              <div key={item.id} className="flex items-center justify-between p-2 hover:bg-white/10 rounded">
-                <span className="truncate">{item.title}</span>
-                <div className="flex gap-2">
-                  <CustomButton
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    onClick={() => onPlayVideo(item.video_id)}
-                  >
-                    <Play size={16} />
-                  </CustomButton>
-                  <CustomButton
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    onClick={() => onAddToRoomPlaylist(item.video_id, item.title)}
-                  >
-                    <Plus size={16} />
-                  </CustomButton>
-                  <CustomButton
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    onClick={() => saveVideoToPlaylist(item.video_id, item.title, playlist)}
-                    disabled={isSaving}
-                  >
-                    <BookmarkPlus size={16} />
-                  </CustomButton>
-                </div>
-              </div>
-            ))}
-          </div>
+      {playlists.length === 0 ? (
+        <GlassCard className="p-4" intensity="light">
+          <p className="text-center text-muted-foreground">
+            You don't have any playlists yet. Create playlists in your profile.
+          </p>
         </GlassCard>
-      ))}
+      ) : (
+        playlists.map((playlist) => (
+          <GlassCard key={playlist.id} className="p-4" intensity="light">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium">{playlist.name}</h3>
+              <CustomButton
+                size="sm"
+                variant="glow"
+                onClick={() => playEntirePlaylist(playlist.items)}
+                icon={<Play size={16} />}
+                disabled={playlist.items.length === 0}
+              >
+                Play All
+              </CustomButton>
+            </div>
+            <div className="space-y-2">
+              {playlist.items.length === 0 ? (
+                <p className="text-sm text-center text-muted-foreground py-2">
+                  No videos in this playlist
+                </p>
+              ) : (
+                playlist.items.map((item: any) => (
+                  <div key={item.id} className="flex items-center justify-between p-2 hover:bg-white/10 rounded">
+                    <span className="truncate">{item.title}</span>
+                    <div className="flex gap-2">
+                      <CustomButton
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => onPlayVideo(item.video_id)}
+                      >
+                        <Play size={16} />
+                      </CustomButton>
+                      <CustomButton
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => onAddToRoomPlaylist(item.video_id, item.title)}
+                      >
+                        <Plus size={16} />
+                      </CustomButton>
+                      <CustomButton
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => saveVideoToPlaylist(item.video_id, item.title, playlist)}
+                        disabled={isSaving}
+                      >
+                        <BookmarkPlus size={16} />
+                      </CustomButton>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </GlassCard>
+        ))
+      )}
     </div>
   );
 };

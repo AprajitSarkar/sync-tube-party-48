@@ -25,7 +25,17 @@ const PlaylistEditor = ({ playlistId, onVideoAdded }: PlaylistEditorProps) => {
   };
 
   const addVideoToPlaylist = async (videoId: string) => {
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to add videos',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     try {
+      setIsAdding(true);
       // Use the stored API key from local storage or fall back to the default key
       const storedKey = user?.id ? localStorage.getItem(`youtube_api_key_${user.id}`) : null;
       const apiKey = storedKey || DEFAULT_YOUTUBE_API_KEY;
@@ -48,12 +58,17 @@ const PlaylistEditor = ({ playlistId, onVideoAdded }: PlaylistEditorProps) => {
       const videoTitle = data.items[0].snippet.title;
 
       // Get current position
-      const { data: currentItems } = await supabase
+      const { data: currentItems, error: positionError } = await supabase
         .from('user_playlist_items')
         .select('position')
         .eq('playlist_id', playlistId)
         .order('position', { ascending: false })
         .limit(1);
+        
+      if (positionError) {
+        console.error('Error getting position:', positionError);
+        throw positionError;
+      }
 
       const nextPosition = (currentItems?.[0]?.position ?? -1) + 1;
 
@@ -67,7 +82,10 @@ const PlaylistEditor = ({ playlistId, onVideoAdded }: PlaylistEditorProps) => {
           position: nextPosition
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding video:', error);
+        throw error;
+      }
 
       toast({
         title: 'Success',

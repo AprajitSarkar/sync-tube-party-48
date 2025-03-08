@@ -110,6 +110,11 @@ const UserPlaylistManager = () => {
       
       setPlaylists(playlists.filter(playlist => playlist.id !== id));
       
+      // If the deleted playlist was selected, unselect it
+      if (selectedPlaylist === id) {
+        setSelectedPlaylist(null);
+      }
+      
       toast({
         title: 'Success',
         description: 'Playlist deleted successfully',
@@ -244,6 +249,20 @@ const UserPlaylistManager = () => {
                   <div className={`flex gap-2 ${isMobile ? 'mt-3 w-full justify-center' : ''}`}>
                     <Button 
                       size={isMobile ? "sm" : "icon"} 
+                      variant="ghost"
+                      onClick={() => startEditingPlaylist(playlist)}
+                    >
+                      {isMobile ? (
+                        <>
+                          <Edit size={16} className="mr-2" />
+                          <span>Rename</span>
+                        </>
+                      ) : (
+                        <Edit size={16} />
+                      )}
+                    </Button>
+                    <Button 
+                      size={isMobile ? "sm" : "icon"} 
                       variant="ghost" 
                       onClick={() => {
                         if (selectedPlaylist === playlist.id) {
@@ -255,22 +274,8 @@ const UserPlaylistManager = () => {
                     >
                       {isMobile ? (
                         <>
-                          <Edit size={16} className="mr-2" />
-                          <span>Edit</span>
-                        </>
-                      ) : (
-                        <Edit size={16} />
-                      )}
-                    </Button>
-                    <Button 
-                      size={isMobile ? "sm" : "icon"} 
-                      variant="ghost" 
-                      onClick={() => startEditingPlaylist(playlist)}
-                    >
-                      {isMobile ? (
-                        <>
                           <Eye size={16} className="mr-2" />
-                          <span>View</span>
+                          <span>{selectedPlaylist === playlist.id ? 'Hide' : 'View'}</span>
                         </>
                       ) : (
                         <Eye size={16} />

@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Input } from '@/components/ui/input';
 import { CustomButton } from '@/components/ui/custom-button';
-import { Search, Plus, Play, Save } from 'lucide-react';
+import { Search, Plus, Play, Save, SaveAll, ListPlus } from 'lucide-react';
 import { supabase, DEFAULT_YOUTUBE_API_KEY } from '@/lib/supabase';
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 import PlaylistItem from './PlaylistItem';
@@ -37,6 +36,8 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
   const [userPlaylists, setUserPlaylists] = useState<any[]>([]);
   const [logMessage, setLogMessage] = useState('');
   const [logVisible, setLogVisible] = useState(false);
+  const [saveAllModalVisible, setSaveAllModalVisible] = useState(false);
+  const [isSavingAll, setIsSavingAll] = useState(false);
 
   useEffect(() => {
     fetchPlaylist();
@@ -103,7 +104,7 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
       showLog("Playlist loaded");
     } catch (error) {
       console.error('Error fetching playlist:', error);
-      showLog("Failed to load playlist");
+      showLog("Failed to load room");
       toast({
         title: 'Error',
         description: 'Failed to load playlist',
@@ -335,7 +336,14 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
   };
 
   const saveToUserPlaylist = async (videoId: string, title: string, playlist: any) => {
-    if (!user) return;
+    if (!user || !playlist?.id) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to save videos',
+        variant: 'destructive'
+      });
+      return;
+    }
     
     try {
       showLog(`Saving to "${playlist.name}"...`);
@@ -348,7 +356,10 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         .order('position', { ascending: false })
         .limit(1);
         
-      if (positionError) throw positionError;
+      if (positionError) {
+        console.error('Position error:', positionError);
+        throw positionError;
+      }
       
       const maxPosition = positionData && positionData.length > 0 ? positionData[0].position : -1;
       
@@ -362,7 +373,10 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
           position: maxPosition + 1
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
       
       toggleSaveOptions(videoId);
       
@@ -380,6 +394,92 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         variant: 'destructive'
       });
     }
+  };
+
+  const saveAllToUserPlaylist = async (playlistObj: any) => {
+    if (!user || !playlistObj?.id || playlist.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'No videos to save or invalid playlist',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setIsSavingAll(true);
+    try {
+      showLog(`Saving all videos to "${playlistObj.name}"...`);
+      
+      const { data: positionData, error: positionError } = await supabase
+        .from('user_playlist_items')
+        .select('position')
+        .eq('user_id', user.id)
+        .eq('playlist_id', playlistObj.id)
+        .order('position', { ascending: false })
+        .limit(1);
+        
+      if (positionError) throw positionError;
+      
+      let startPosition = positionData && positionData.length > 0 ? positionData[0].position + 1 : 0;
+      
+      const insertData = playlist.map((item, index) => ({
+        user_id: user.id,
+        playlist_id: playlistObj.id,
+        video_id: item.video_id,
+        title: item.title,
+        position: startPosition + index
+      }));
+      
+      for (let i = 0; i < insertData.length; i++) {
+        const { error } = await supabase
+          .from('user_playlist_items')
+          .insert(insertData[i]);
+          
+        if (error) {
+          console.error(`Error inserting video ${i+1}:`, error);
+        }
+      }
+      
+      setSaveAllModalVisible(false);
+      
+      showLog("All videos saved to playlist");
+      toast({
+        title: 'Success',
+        description: `All ${insertData.length} videos saved to "${playlistObj.name}" playlist`,
+      });
+    } catch (error) {
+      console.error('Error saving all videos to playlist:', error);
+      showLog("Failed to save all videos");
+      toast({
+        title: 'Error',
+        description: 'Failed to save all videos to your playlist',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSavingAll(false);
+    }
+  };
+
+  const showSaveAllModal = () => {
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to save videos',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    if (playlist.length === 0) {
+      toast({
+        title: 'Empty Playlist',
+        description: 'There are no videos to save',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setSaveAllModalVisible(true);
   };
 
   const toggleSaveOptions = (videoId: string) => {
@@ -480,7 +580,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         
       if (playlistError) throw playlistError;
       
-      // Now add the video to the new playlist
       const { error: itemError } = await supabase
         .from('user_playlist_items')
         .insert({
@@ -493,7 +592,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         
       if (itemError) throw itemError;
       
-      // Update the local playlists state
       setUserPlaylists(prev => [...prev, data]);
       
       toggleSaveOptions(videoId);
@@ -524,8 +622,20 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
       />
       
       <GlassCard className="flex flex-col h-full">
-        <div className="p-3 border-b border-white/10">
+        <div className="p-3 border-b border-white/10 flex justify-between items-center">
           <h3 className="font-medium text-white">Playlist</h3>
+          
+          {playlist.length > 0 && user && (
+            <CustomButton 
+              size="sm" 
+              variant="ghost" 
+              onClick={showSaveAllModal}
+              className="h-7 text-xs gap-1"
+            >
+              <Save size={14} />
+              <span>Save All</span>
+            </CustomButton>
+          )}
         </div>
         
         <div className="p-3 border-b border-white/10">
@@ -546,6 +656,114 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
               {urlInput.includes('youtube.com') || urlInput.includes('youtu.be') ? 'Add' : 'Search'}
             </CustomButton>
           </div>
+          
+          {saveAllModalVisible && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+              <div className="bg-card border border-white/10 rounded-lg p-4 w-full max-w-md">
+                <h3 className="text-lg font-medium mb-4">Save All Videos</h3>
+                
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Select a playlist to save all {playlist.length} videos:
+                </p>
+                
+                <div className="max-h-60 overflow-y-auto mb-4">
+                  {userPlaylists.length > 0 ? (
+                    <div className="space-y-2">
+                      {userPlaylists.map(playlistObj => (
+                        <button
+                          key={playlistObj.id}
+                          className="w-full text-left p-3 rounded bg-white/5 hover:bg-white/10 transition"
+                          onClick={() => saveAllToUserPlaylist(playlistObj)}
+                          disabled={isSavingAll}
+                        >
+                          <p className="font-medium">{playlistObj.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Created {new Date(playlistObj.created_at).toLocaleDateString()}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center py-4 text-muted-foreground">
+                      You don't have any playlists yet
+                    </p>
+                  )}
+                </div>
+                
+                <div className="flex justify-end gap-2 mt-2">
+                  <CustomButton
+                    variant="outline"
+                    onClick={() => setSaveAllModalVisible(false)}
+                    disabled={isSavingAll}
+                  >
+                    Cancel
+                  </CustomButton>
+                  <div className="relative">
+                    <Input
+                      placeholder="Create new playlist..."
+                      className="pr-12 bg-white/5 border-white/20"
+                      disabled={isSavingAll}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.currentTarget.value) {
+                          const newPlaylistName = e.currentTarget.value;
+                          try {
+                            supabase.from('user_playlists')
+                              .insert({
+                                user_id: user?.id,
+                                name: newPlaylistName.trim()
+                              })
+                              .select()
+                              .single()
+                              .then(({ data, error }) => {
+                                if (error) throw error;
+                                if (data) {
+                                  setUserPlaylists(prev => [...prev, data]);
+                                  saveAllToUserPlaylist(data);
+                                }
+                              });
+                          } catch (error) {
+                            console.error('Error creating new playlist:', error);
+                          }
+                        }
+                      }}
+                    />
+                    <CustomButton
+                      size="sm"
+                      variant="ghost"
+                      className="absolute right-0 top-0 h-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const input = e.currentTarget.previousSibling as HTMLInputElement;
+                        if (input.value) {
+                          try {
+                            supabase.from('user_playlists')
+                              .insert({
+                                user_id: user?.id,
+                                name: input.value.trim()
+                              })
+                              .select()
+                              .single()
+                              .then(({ data, error }) => {
+                                if (error) throw error;
+                                if (data) {
+                                  setUserPlaylists(prev => [...prev, data]);
+                                  saveAllToUserPlaylist(data);
+                                }
+                              });
+                          } catch (error) {
+                            console.error('Error creating new playlist:', error);
+                          }
+                        }
+                      }}
+                      disabled={isSavingAll}
+                    >
+                      <Plus size={16} />
+                    </CustomButton>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
           {searchResults.length > 0 && (
             <div className="mt-3">
@@ -602,13 +820,13 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
                                 </div>
                                 <div className="max-h-40 overflow-y-auto p-1">
                                   {userPlaylists.length > 0 ? (
-                                    userPlaylists.map(name => (
+                                    userPlaylists.map(playlist => (
                                       <button
-                                        key={name}
+                                        key={playlist.id}
                                         className="w-full text-left p-2 text-sm hover:bg-white/10 rounded-sm"
-                                        onClick={() => saveToUserPlaylist(result.id, result.title, name)}
+                                        onClick={() => saveToUserPlaylist(result.id, result.title, playlist)}
                                       >
-                                        {name}
+                                        {playlist.name}
                                       </button>
                                     ))
                                   ) : (
@@ -704,13 +922,13 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
                                     </div>
                                     <div className="max-h-40 overflow-y-auto p-1">
                                       {userPlaylists.length > 0 ? (
-                                        userPlaylists.map(name => (
+                                        userPlaylists.map(playlist => (
                                           <button
-                                            key={name}
+                                            key={playlist.id}
                                             className="w-full text-left p-2 text-sm hover:bg-white/10 rounded-sm"
-                                            onClick={() => saveToUserPlaylist(item.video_id, item.title, name)}
+                                            onClick={() => saveToUserPlaylist(item.video_id, item.title, playlist)}
                                           >
-                                            {name}
+                                            {playlist.name}
                                           </button>
                                         ))
                                       ) : (
@@ -746,25 +964,3 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
                                         </CustomButton>
                                       </div>
                                     </div>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </DragDropContext>
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-      </GlassCard>
-    </>
-  );
-};
-
-export default PlaylistPanel;
-
