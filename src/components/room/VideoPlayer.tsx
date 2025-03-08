@@ -44,6 +44,9 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
   const lastSyncTimeRef = useRef(0);
   const [showEmptyState, setShowEmptyState] = useState(false);
 
+  // Add ref to track if we should play the next video automatically
+  const autoplayNextRef = useRef(false);
+
   useEffect(() => {
     const loadYouTubeAPI = () => {
       if (!window.YT && !apiLoadedRef.current) {
@@ -100,6 +103,63 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
       }
     }
   }, [videoId]);
+
+  // New function to play the next video in the playlist
+  const playNextVideo = async () => {
+    try {
+      console.log('Looking for next video in playlist...');
+      
+      // Get the current playlist
+      const { data: playlistData, error: playlistError } = await supabase
+        .from('playlist_items')
+        .select('*')
+        .eq('room_id', roomId)
+        .order('position', { ascending: true });
+        
+      if (playlistError) throw playlistError;
+      
+      if (!playlistData || playlistData.length === 0) {
+        console.log('Playlist is empty, no next video to play');
+        return;
+      }
+      
+      // Find the current video index in the playlist
+      const currentIndex = playlistData.findIndex(item => item.video_id === videoId);
+      
+      // If the current video is not found or it's the last one, don't proceed
+      if (currentIndex === -1 || currentIndex >= playlistData.length - 1) {
+        console.log('No next video available in the playlist');
+        return;
+      }
+      
+      // Get the next video
+      const nextVideo = playlistData[currentIndex + 1];
+      console.log('Playing next video:', nextVideo.title);
+      
+      // Change to the next video
+      setVideoId(nextVideo.video_id);
+      
+      // Update the room state with the new video
+      await supabase
+        .from('video_rooms')
+        .update({
+          video_state: {
+            isPlaying: true, // Autoplay the next video
+            timestamp: Date.now(),
+            currentTime: 0,
+            videoId: nextVideo.video_id
+          }
+        })
+        .eq('id', roomId);
+        
+      toast({
+        title: 'Next Video',
+        description: `Now playing: ${nextVideo.title}`,
+      });
+    } catch (error) {
+      console.error('Error playing next video:', error);
+    }
+  };
 
   useEffect(() => {
     const roomSubscription = supabase
@@ -338,6 +398,17 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
 
   const onPlayerStateChange = (event: YT.PlayerEvent) => {
     console.log('Player state changed:', event.data);
+    
+    // Check if video has ended and play next video
+    if (event.data === window.YT?.PlayerState.ENDED) {
+      console.log('Video ended, attempting to play next video');
+      autoplayNextRef.current = true;
+      // Slight delay to ensure state is properly updated
+      setTimeout(() => {
+        playNextVideo();
+      }, 500);
+      return;
+    }
     
     if (!remoteUpdateRef.current) {
       if (event.data === window.YT?.PlayerState.PLAYING) {
