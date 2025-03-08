@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import { Play, PlusCircle, Trash2, LogOut, ArrowRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import PageTransition from '@/components/common/PageTransition';
-
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 interface Room {
   id: string;
   name: string;
@@ -21,13 +21,14 @@ interface Room {
 }
 
 const Home = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isEmailVerified } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [recentRooms, setRecentRooms] = useState<Room[]>([]);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [joinRoomId, setJoinRoomId] = useState('');
+  const [showVerifyEmail, setShowVerifyEmail] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -107,6 +108,11 @@ const Home = () => {
   };
 
   const createRoom = async () => {
+    if (!isEmailVerified()) {
+      setShowVerifyEmail(true);
+      return;
+    }
+    
     if (!newRoomName.trim()) {
       toast({
         title: 'Room name required',
@@ -161,6 +167,11 @@ const Home = () => {
   };
 
   const joinRoom = async () => {
+    if (!isEmailVerified()) {
+      setShowVerifyEmail(true);
+      return;
+    }
+    
     if (!joinRoomId.trim()) {
       toast({
         title: 'Room ID required',
@@ -202,6 +213,10 @@ const Home = () => {
   };
 
   const enterRoom = (roomId: string) => {
+    if (!isEmailVerified()) {
+      setShowVerifyEmail(true);
+      return;
+    }
     navigate(`/room/${roomId}`);
   };
 
@@ -239,6 +254,16 @@ const Home = () => {
     navigate('/auth');
   };
 
+  const handleResendVerification = async () => {
+    if (user?.email) {
+      await resendConfirmationEmail(user.email);
+      toast({
+        title: "Verification email sent",
+        description: "Please check your inbox and verify your email"
+      });
+    }
+  };
+
   return (
     <PageTransition>
       <div 
@@ -250,7 +275,7 @@ const Home = () => {
         <div className="max-w-4xl mx-auto">
           <header className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-2xl font-bold text-gradient">Sync Tube Party</h1>
+              <h1 className="text-2xl font-bold text-gradient">WatchTube</h1>
               <p className="text-muted-foreground">Hello, {user?.email}</p>
             </div>
             <CustomButton 
@@ -262,6 +287,26 @@ const Home = () => {
               Sign Out
             </CustomButton>
           </header>
+          
+          {!isEmailVerified() && (
+            <GlassCard className="mb-6 border-l-4 border-yellow-400">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-medium text-enhanced">Email Verification Required</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Please verify your email to create or join rooms.
+                  </p>
+                </div>
+                <CustomButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleResendVerification}
+                >
+                  Resend Verification
+                </CustomButton>
+              </div>
+            </GlassCard>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <GlassCard>
@@ -370,6 +415,33 @@ const Home = () => {
           </GlassCard>
         </div>
       </div>
+
+      <Dialog open={showVerifyEmail} onOpenChange={setShowVerifyEmail}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Email Verification Required</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <p className="mb-4">You need to verify your email before you can create or join rooms.</p>
+            <p className="text-sm text-muted-foreground">A verification link has been sent to your email address. Please check your inbox and spam folder.</p>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <CustomButton 
+              variant="outline" 
+              onClick={() => setShowVerifyEmail(false)}
+              className="sm:order-1"
+            >
+              Close
+            </CustomButton>
+            <CustomButton 
+              onClick={handleResendVerification}
+              className="sm:order-2"
+            >
+              Resend Verification Email
+            </CustomButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 };

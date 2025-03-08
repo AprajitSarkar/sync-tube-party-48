@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,9 +9,10 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { LogIn, UserPlus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { LogIn, UserPlus, Send } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -32,6 +33,8 @@ const AuthForm = () => {
   const [emailSent, setEmailSent] = useState(false);
   const [emailAddress, setEmailAddress] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  const navigate = useNavigate();
   
   const {
     signIn,
@@ -57,7 +60,8 @@ const AuthForm = () => {
     try {
       if (isSignUp) {
         await signUp(data.email, data.password);
-        setEmailSent(true);
+        setShowWelcomeDialog(true);
+        navigate('/home');
       } else {
         const result = await signIn(data.email, data.password);
         
@@ -244,6 +248,36 @@ const AuthForm = () => {
           </>
         )}
       </GlassCard>
+
+      <Dialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">Welcome to WatchTube!</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 text-center">
+            <p className="mb-4">Thank you for joining WatchTube. Please verify your email to create and join rooms.</p>
+            
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Connect with us:</h3>
+                <div className="flex flex-col gap-2">
+                  <p>Telegram: <a href="https://t.me/WatchTubeFun" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">@WatchTubeFun</a></p>
+                  <p>Instagram: <a href="https://instagram.com/watchtube.fun" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">@watchtube.fun</a></p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <CustomButton 
+              onClick={() => setShowWelcomeDialog(false)} 
+              icon={<Send size={16} />}
+              className="w-full"
+            >
+              Continue to App
+            </CustomButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

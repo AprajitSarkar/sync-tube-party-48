@@ -13,7 +13,9 @@ export const isUsingEnvVars = Boolean(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
+// Default YouTube API key
+export const DEFAULT_YOUTUBE_API_KEY = 'AIzaSyB-qDaqVOnqVjiSIYfxJl2SZRySLjG9SR0';
+
 console.log('Supabase client initialized', { 
   usingEnvVars: isUsingEnvVars 
 });
-

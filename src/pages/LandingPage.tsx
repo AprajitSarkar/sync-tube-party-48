@@ -228,6 +228,61 @@ const LandingPage = () => {
           </div>
         </motion.div>
       </section>
+
+      <section className="py-12 bg-background/30">
+        <div className="container mx-auto px-6">
+          <motion.div 
+            className="text-center mb-10"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl font-bold mb-4 text-gradient">Connect With Us</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Follow us on social media or join our community
+            </p>
+          </motion.div>
+          
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 max-w-2xl mx-auto gap-6"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+          >
+            <motion.div variants={fadeInUp}>
+              <GlassCard className="p-6 text-center">
+                <h3 className="text-xl font-semibold mb-3">Telegram</h3>
+                <p className="text-muted-foreground mb-4">
+                  Join our Telegram community for updates and support
+                </p>
+                <CustomButton 
+                  variant="outline"
+                  onClick={() => window.open('https://t.me/WatchTubeFun', '_blank')}
+                >
+                  @WatchTubeFun
+                </CustomButton>
+              </GlassCard>
+            </motion.div>
+            
+            <motion.div variants={fadeInUp}>
+              <GlassCard className="p-6 text-center">
+                <h3 className="text-xl font-semibold mb-3">Instagram</h3>
+                <p className="text-muted-foreground mb-4">
+                  Follow us on Instagram for latest news
+                </p>
+                <CustomButton 
+                  variant="outline"
+                  onClick={() => window.open('https://instagram.com/watchtube.fun', '_blank')}
+                >
+                  @watchtube.fun
+                </CustomButton>
+              </GlassCard>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
       
       <footer className="bg-background/30 py-12">
         <div className="container mx-auto px-6">
@@ -254,6 +309,9 @@ const LandingPage = () => {
           <div className="border-t border-white/10 mt-8 pt-8 text-center">
             <p className="text-muted-foreground text-sm">
               © {new Date().getFullYear()} WatchTube.com. All rights reserved.
+            </p>
+            <p className="text-muted-foreground text-sm mt-2">
+              Developer & Founder: <a href="https://instagram.com/jitusarkar21" target="_blank" rel="noopener noreferrer" className="hover:underline">@jitusarkar21</a> | Contact: cozmoim@gmail.com
             </p>
           </div>
         </div>

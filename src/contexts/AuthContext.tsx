@@ -16,6 +16,7 @@ interface AuthContextType {
   updatePassword: (password: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
   resendConfirmationEmail: (email: string) => Promise<void>;
+  isEmailVerified: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,16 +48,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) throw error;
-      toast({
-        title: "Account created!",
-        description: "Check your email for the confirmation link."
-      });
+      
+      // Auto-login after signup even without verification
+      if (data.user) {
+        setUser(data.user);
+        
+        // Only show toast if we successfully signed in
+        toast({
+          title: "Account created!",
+          description: "Please check your email for the verification link to get full access."
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -256,6 +264,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Added helper method to check if email is verified
+  const isEmailVerified = () => {
+    if (!user) return false;
+    return user.email_confirmed_at !== null;
+  };
+
   return (
     <AuthContext.Provider value={{ 
       session, 
@@ -268,7 +282,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resetPassword,
       updatePassword,
       deleteAccount,
-      resendConfirmationEmail
+      resendConfirmationEmail,
+      isEmailVerified
     }}>
       {children}
     </AuthContext.Provider>
