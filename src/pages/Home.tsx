@@ -12,6 +12,7 @@ import { Play, PlusCircle, Trash2, LogOut, ArrowRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import PageTransition from '@/components/common/PageTransition';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 interface Room {
   id: string;
   name: string;
@@ -21,7 +22,7 @@ interface Room {
 }
 
 const Home = () => {
-  const { user, signOut, isEmailVerified } = useAuth();
+  const { user, signOut, isEmailVerified, resendConfirmationEmail } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [recentRooms, setRecentRooms] = useState<Room[]>([]);
@@ -40,7 +41,6 @@ const Home = () => {
     try {
       setIsLoading(true);
       
-      // Get rooms created by the user
       const { data: createdRooms, error: createdError } = await supabase
         .from('video_rooms')
         .select('*')
@@ -49,7 +49,6 @@ const Home = () => {
         
       if (createdError) throw createdError;
       
-      // Get rooms participated in
       const { data: participatedRooms, error: participatedError } = await supabase
         .from('room_participants')
         .select('room_id, last_active')
@@ -58,7 +57,6 @@ const Home = () => {
         
       if (participatedError) throw participatedError;
       
-      // Get full room details for participated rooms
       const participatedRoomDetails = await Promise.all(
         (participatedRooms || []).map(async (participation) => {
           const { data, error } = await supabase
@@ -75,7 +73,6 @@ const Home = () => {
         })
       );
       
-      // Combine, filter duplicates, and sort by last accessed
       const allRooms = [
         ...(createdRooms || []).map(room => ({
           ...room,
@@ -84,17 +81,15 @@ const Home = () => {
         ...participatedRoomDetails.filter(Boolean)
       ];
       
-      // Remove duplicates
       const uniqueRooms = allRooms.filter((room, index, self) =>
         index === self.findIndex((r) => r.id === room.id)
       );
       
-      // Sort by last accessed
       const sortedRooms = uniqueRooms.sort((a, b) => 
         new Date(b.last_accessed).getTime() - new Date(a.last_accessed).getTime()
       );
       
-      setRecentRooms(sortedRooms.slice(0, 10)); // Limit to 10 most recent
+      setRecentRooms(sortedRooms.slice(0, 10));
     } catch (error) {
       console.error('Error fetching recent rooms:', error);
       toast({
@@ -125,7 +120,6 @@ const Home = () => {
     try {
       setIsCreatingRoom(true);
       
-      // Create room
       const { data, error } = await supabase
         .from('video_rooms')
         .insert({
@@ -143,7 +137,6 @@ const Home = () => {
         
       if (error) throw error;
       
-      // Add creator as participant
       await supabase
         .from('room_participants')
         .insert({
@@ -152,7 +145,6 @@ const Home = () => {
           last_active: new Date().toISOString()
         });
       
-      // Navigate to the room
       navigate(`/room/${data.id}`);
     } catch (error) {
       console.error('Error creating room:', error);
@@ -182,7 +174,6 @@ const Home = () => {
     }
     
     try {
-      // Check if room exists
       const { data, error } = await supabase
         .from('video_rooms')
         .select('id')
@@ -191,7 +182,6 @@ const Home = () => {
         
       if (error) throw new Error('Room not found');
       
-      // Add user as participant
       await supabase
         .from('room_participants')
         .upsert({
@@ -200,7 +190,6 @@ const Home = () => {
           last_active: new Date().toISOString()
         });
       
-      // Navigate to the room
       navigate(`/room/${data.id}`);
     } catch (error) {
       console.error('Error joining room:', error);
@@ -224,7 +213,6 @@ const Home = () => {
     event.stopPropagation();
     
     try {
-      // Delete room
       const { error } = await supabase
         .from('video_rooms')
         .delete()
@@ -232,7 +220,6 @@ const Home = () => {
         
       if (error) throw error;
       
-      // Update local state
       setRecentRooms(recentRooms.filter(room => room.id !== roomId));
       
       toast({
@@ -298,7 +285,7 @@ const Home = () => {
                   </p>
                 </div>
                 <CustomButton
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={handleResendVerification}
                 >
