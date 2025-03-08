@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -421,7 +420,7 @@ const Room = () => {
               {room?.name || 'Watch Video'}
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center space-x-3">
             <CustomButton
               variant="ghost"
               size="icon"
