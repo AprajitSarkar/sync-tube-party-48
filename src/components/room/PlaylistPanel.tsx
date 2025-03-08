@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Input } from '@/components/ui/input';
@@ -964,3 +965,24 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
                                         </CustomButton>
                                       </div>
                                     </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+      </GlassCard>
+    </>
+  );
+};
+
+export default PlaylistPanel;
