@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Input } from '@/components/ui/input';
@@ -81,7 +80,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         
       if (error) throw error;
       
-      // Get unique playlist names
       const uniqueNames = [...new Set((data || []).map(item => item.playlist_name))];
       setUserPlaylists(uniqueNames);
     } catch (error) {
@@ -117,18 +115,15 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
   };
 
   const extractVideoId = (url: string): string | null => {
-    // Handle standard YouTube URLs
     const standardMatch = url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (standardMatch) return standardMatch[1];
     
-    // Handle direct video ID input (if it's exactly 11 chars)
     if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
     
     return null;
   };
 
   const addToPlaylist = async () => {
-    // If the input is not a URL, treat it as a search query
     if (!urlInput.includes('youtube.com') && !urlInput.includes('youtu.be') && !/^[a-zA-Z0-9_-]{11}$/.test(urlInput)) {
       handleSearch(urlInput);
       return;
@@ -147,12 +142,10 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     
     try {
       showLog("Adding to playlist...");
-      // Get video title from oEmbed API
       const response = await fetch(`https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`);
       const data = await response.json();
       const title = data.title || 'Untitled Video';
       
-      // Get the new position (max position + 1)
       const maxPosition = playlist.length > 0 
         ? Math.max(...playlist.map(item => item.position)) 
         : -1;
@@ -203,16 +196,61 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
       setIsSearching(true);
       showLog("Searching videos...");
       
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&type=video&q=${encodeURIComponent(query)}&key=YOUR_YOUTUBE_API_KEY`);
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+      
+      const results = data.items.map((item: any) => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.default.url
+      }));
+      
+      setSearchResults(results);
+      showLog(`Found ${results.length} videos`);
+      
+      if (results.length === 0) {
+        toast({
+          title: 'No Results',
+          description: 'No videos found for your search',
+          variant: 'destructive'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error searching videos:', error);
+      showLog("Search failed");
+      
+      fallbackSearch(query);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const fallbackSearch = async (query: string) => {
+    if (!query.trim()) {
+      toast({
+        title: 'Empty Search',
+        description: 'Please enter a search term',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    try {
+      setIsSearching(true);
+      showLog("Searching videos...");
+      
       const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
       const response = await fetch(searchUrl);
       const html = await response.text();
       
-      // Extract video IDs from search results
       const videoPattern = /\/watch\?v=([\w-]{11})/g;
       const matches = html.matchAll(videoPattern);
       const uniqueIds = [...new Set([...matches].map(match => match[1]))].slice(0, 5);
       
-      // Get video titles
       const results = await Promise.all(uniqueIds.map(async (id) => {
         try {
           const response = await fetch(`https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${id}&format=json`);
@@ -255,7 +293,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
   const addSearchResultToPlaylist = async (result: any) => {
     try {
       showLog("Adding to playlist...");
-      // Get the new position (max position + 1)
       const maxPosition = playlist.length > 0 
         ? Math.max(...playlist.map(item => item.position)) 
         : -1;
@@ -299,7 +336,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     try {
       showLog(`Saving to "${playlistName}"...`);
       
-      // Get the max position for the specified playlist
       const { data: positionData, error: positionError } = await supabase
         .from('user_playlist_items')
         .select('position')
@@ -312,7 +348,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
       
       const maxPosition = positionData && positionData.length > 0 ? positionData[0].position : -1;
       
-      // Insert the item into the user's playlist
       const { error } = await supabase
         .from('user_playlist_items')
         .insert({
@@ -325,7 +360,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         
       if (error) throw error;
       
-      // Close the save options menu
       toggleSaveOptions(videoId);
       
       showLog("Saved to playlist");
@@ -361,7 +395,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
 
       if (error) throw error;
       
-      // Update positions after deletion
       const updatedPlaylist = playlist.filter(item => item.id !== id);
       updatePositions(updatedPlaylist);
       
@@ -389,22 +422,18 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     
     if (sourceIndex === destinationIndex) return;
     
-    // Reorder the playlist
     const newPlaylist = [...playlist];
     const [removed] = newPlaylist.splice(sourceIndex, 1);
     newPlaylist.splice(destinationIndex, 0, removed);
     
-    // Update positions
     updatePositions(newPlaylist);
   };
 
   const updatePositions = async (newPlaylist: PlaylistItem[]) => {
-    // Update local state immediately for a snappy UI
     setPlaylist(newPlaylist);
     
     try {
       showLog("Updating playlist order...");
-      // Update each item's position in the database
       const updates = newPlaylist.map((item, index) => ({
         id: item.id,
         position: index,
@@ -426,7 +455,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         variant: 'destructive'
       });
       
-      // Refetch to ensure UI matches the database
       fetchPlaylist();
     }
   };
@@ -437,7 +465,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
     try {
       showLog("Creating new playlist...");
       
-      // Create new playlist
       const { error: playlistError } = await supabase
         .from('user_playlists')
         .insert({
@@ -447,7 +474,6 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         
       if (playlistError) throw playlistError;
       
-      // Add the video to the new playlist
       const { error: itemError } = await supabase
         .from('user_playlist_items')
         .insert({
@@ -460,10 +486,8 @@ const PlaylistPanel = ({ roomId, currentVideoId, onPlayVideo }: PlaylistPanelPro
         
       if (itemError) throw itemError;
       
-      // Update local state
       setUserPlaylists(prev => [...prev, newPlaylistName.trim()]);
       
-      // Close the save options
       toggleSaveOptions(videoId);
       
       showLog("Created and saved to new playlist");

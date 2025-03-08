@@ -1,4 +1,3 @@
-
 -- Add extension for UUID support
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -85,17 +84,40 @@ CREATE TABLE room_participants (
 CREATE INDEX room_participants_room_id_idx ON room_participants(room_id);
 CREATE INDEX room_participants_user_id_idx ON room_participants(user_id);
 
--- Function to clean up inactive rooms (no activity for 24 hours)
+-- Function to clean up inactive rooms (modified to keep rooms with participants)
 CREATE OR REPLACE FUNCTION cleanup_inactive_rooms()
 RETURNS void AS $$
 BEGIN
-  -- Delete rooms with no activity for 24 hours
+  -- Only delete rooms that have no participants for 24 hours
   DELETE FROM video_rooms
-  WHERE last_activity < NOW() - INTERVAL '24 hours';
+  WHERE id IN (
+    SELECT v.id 
+    FROM video_rooms v
+    LEFT JOIN room_participants p ON v.id = p.room_id
+    WHERE p.id IS NULL 
+    AND v.last_activity < NOW() - INTERVAL '24 hours'
+  );
   
   -- Delete participant records with no activity for 2 hours
   DELETE FROM room_participants
   WHERE last_active < NOW() - INTERVAL '2 hours';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to keep only last 3 rooms per user
+CREATE OR REPLACE FUNCTION cleanup_old_rooms()
+RETURNS void AS $$
+BEGIN
+  DELETE FROM video_rooms
+  WHERE id IN (
+    SELECT id
+    FROM (
+      SELECT id,
+             ROW_NUMBER() OVER (PARTITION BY created_by ORDER BY last_activity DESC) as rn
+      FROM video_rooms
+    ) ranked
+    WHERE rn > 3
+  );
 END;
 $$ LANGUAGE plpgsql;
 

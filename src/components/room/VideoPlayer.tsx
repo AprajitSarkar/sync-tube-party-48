@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -83,6 +82,11 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
         if (playerRef.current) {
           console.log('Loading video into existing player:', videoId);
           playerRef.current.loadVideoById(videoId);
+          
+          // Enable background playback for mobile
+          if (playerRef.current.getIframe()) {
+            playerRef.current.getIframe().allow = "autoplay; fullscreen; picture-in-picture";
+          }
         } else {
           console.log('Creating new player with video:', videoId);
           createPlayer(videoId);
@@ -271,6 +275,7 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
           rel: 0,
           enablejsapi: 1,
           origin: window.location.origin,
+          allow: "autoplay; fullscreen; picture-in-picture"
         },
         events: {
           onReady: onPlayerReady,
@@ -583,7 +588,6 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
           </div>
         )}
         
-        {/* Empty state message when no video is playing */}
         {showEmptyState && !isLoading && !videoId && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10 p-6 text-center">
             <div className="rounded-full bg-primary/20 p-4 mb-4">
