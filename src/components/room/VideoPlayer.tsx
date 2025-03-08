@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -274,11 +275,17 @@ const VideoPlayer = ({ roomId, userId }: VideoPlayerProps) => {
           modestbranding: 1,
           rel: 0,
           enablejsapi: 1,
-          origin: window.location.origin,
-          allow: "autoplay; fullscreen; picture-in-picture"
+          origin: window.location.origin
         },
         events: {
-          onReady: onPlayerReady,
+          onReady: (event) => {
+            onPlayerReady(event);
+            // Enable background playback after player is ready
+            const iframe = event.target.getIframe();
+            if (iframe) {
+              iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+            }
+          },
           onStateChange: onPlayerStateChange,
           onError: (event) => {
             console.error('YouTube player error:', event.data);
