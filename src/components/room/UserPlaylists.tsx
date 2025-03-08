@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
-import { Play, Plus } from 'lucide-react';
+import { Play, Plus, BookmarkPlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface UserPlaylistsProps {
@@ -16,6 +16,7 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
   const { user } = useAuth();
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -90,6 +91,52 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
     }
   };
 
+  const saveVideoToPlaylist = async (videoId: string, title: string, playlist: any) => {
+    setIsSaving(true);
+    try {
+      // Get current max position
+      const { data: currentItems } = await supabase
+        .from('user_playlist_items')
+        .select('position')
+        .eq('playlist_id', playlist.id)
+        .order('position', { ascending: false })
+        .limit(1);
+
+      const nextPosition = (currentItems?.[0]?.position ?? -1) + 1;
+
+      // Add video to playlist
+      const { error } = await supabase
+        .from('user_playlist_items')
+        .insert({
+          playlist_id: playlist.id,
+          user_id: user?.id,
+          video_id: videoId,
+          title: title,
+          position: nextPosition,
+          playlist_name: playlist.playlist_name
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: `Video saved to ${playlist.playlist_name}`,
+      });
+
+      // Refresh playlists
+      await fetchUserPlaylists();
+    } catch (error) {
+      console.error('Error saving video:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save video to playlist',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {playlists.map((playlist) => (
@@ -125,6 +172,15 @@ const UserPlaylists = ({ onPlayVideo, onAddToRoomPlaylist }: UserPlaylistsProps)
                     onClick={() => onAddToRoomPlaylist(item.video_id, item.title)}
                   >
                     <Plus size={16} />
+                  </CustomButton>
+                  <CustomButton
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => saveVideoToPlaylist(item.video_id, item.title, playlist)}
+                    disabled={isSaving}
+                  >
+                    <BookmarkPlus size={16} />
                   </CustomButton>
                 </div>
               </div>

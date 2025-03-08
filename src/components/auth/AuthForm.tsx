@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -29,6 +30,9 @@ type FormData = z.infer<typeof formSchema>;
 const AuthForm = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [loginError, setLoginError] = useState('');
+  
   const {
     signIn,
     signUp,
@@ -47,23 +51,33 @@ const AuthForm = () => {
   });
 
   const onSubmit = async (data: FormData) => {
+    setLoginError('');
+    setEmailAddress(data.email);
+    
     try {
       if (isSignUp) {
         await signUp(data.email, data.password);
         setEmailSent(true);
       } else {
         const result = await signIn(data.email, data.password);
-        if (result?.error === 'Email not confirmed') {
-          setEmailSent(true);
+        
+        if (result?.error) {
+          if (result.error === 'Email not confirmed') {
+            setEmailSent(true);
+          } else {
+            setLoginError(result.error);
+          }
         }
       }
     } catch (error) {
       console.error('Auth error:', error);
+      setLoginError('Authentication failed. Please try again.');
     }
   };
 
   const handleResendEmail = async () => {
-    const email = form.getValues('email');
+    const email = emailAddress || form.getValues('email');
+    
     if (email) {
       await resendConfirmationEmail(email);
       setEmailSent(true);
@@ -75,7 +89,12 @@ const AuthForm = () => {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-md px-0 py-0 my-0 mx-0">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.5 }} 
+      className="w-full max-w-md px-0 py-0 my-0 mx-0"
+    >
       <GlassCard className="p-6 sm:p-8">
         {emailSent ? (
           <div className="text-center">
@@ -103,7 +122,12 @@ const AuthForm = () => {
               </p>
             </div>
 
-            <CustomButton type="button" className="w-full mb-6 flex items-center justify-center gap-2" variant="outline" onClick={handleGoogleSignIn}>
+            <CustomButton 
+              type="button" 
+              className="w-full mb-6 flex items-center justify-center gap-2" 
+              variant="outline" 
+              onClick={handleGoogleSignIn}
+            >
               <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png" alt="Google" className="w-5 h-5" />
               Continue with Google
             </CustomButton>
@@ -114,49 +138,89 @@ const AuthForm = () => {
               <div className="flex-1 border-t border-white/10"></div>
             </div>
 
+            {loginError && (
+              <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4 text-sm">
+                {loginError}
+              </div>
+            )}
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField control={form.control} name="email" render={({
-                  field
-                }) => <FormItem>
-                    <FormLabel className="text-enhanced-muted">Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="your@email.com" {...field} className="h-12 bg-white/5 border-white/20 focus-visible:ring-primary input-glow" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>} />
-                
-                <FormField control={form.control} name="password" render={({
-                  field
-                }) => <FormItem>
-                    <FormLabel className="text-enhanced-muted">Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} className="h-12 bg-white/5 border-white/20 focus-visible:ring-primary input-glow" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>} />
-
-                {isSignUp && <FormField control={form.control} name="acceptTerms" render={({
-                  field
-                }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="text-sm">
-                        I accept the <Link to="/terms" className="text-accent hover:underline">Terms and Conditions</Link>
-                      </FormLabel>
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-enhanced-muted">Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="your@email.com"
+                          {...field}
+                          className="h-12 bg-white/5 border-white/20 focus-visible:ring-primary input-glow"
+                        />
+                      </FormControl>
                       <FormMessage />
-                    </div>
-                  </FormItem>} />}
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-enhanced-muted">Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          {...field}
+                          className="h-12 bg-white/5 border-white/20 focus-visible:ring-primary input-glow"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                {!isSignUp && <div className="text-right">
+                {isSignUp && (
+                  <FormField
+                    control={form.control}
+                    name="acceptTerms"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-sm">
+                            I accept the <Link to="/terms" className="text-accent hover:underline">Terms and Conditions</Link>
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {!isSignUp && (
+                  <div className="text-right">
                     <Link to="/forgot-password" className="text-sm text-accent hover:underline transition-colors">
                       Forgot password?
                     </Link>
-                  </div>}
+                  </div>
+                )}
 
-                <CustomButton type="submit" className="w-full mt-6" isLoading={isLoading} variant="glow" icon={isSignUp ? <UserPlus size={18} /> : <LogIn size={18} />}>
+                <CustomButton
+                  type="submit"
+                  className="w-full mt-6"
+                  isLoading={isLoading}
+                  variant="glow"
+                  icon={isSignUp ? <UserPlus size={18} /> : <LogIn size={18} />}
+                >
                   {isSignUp ? 'Create Account' : 'Sign In'}
                 </CustomButton>
               </form>
@@ -165,10 +229,14 @@ const AuthForm = () => {
             <div className="mt-6 text-center">
               <p className="text-sm text-enhanced-muted">
                 {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-                <button onClick={() => {
-                  setIsSignUp(!isSignUp);
-                  form.reset();
-                }} className="ml-1 text-accent hover:underline focus:outline-none">
+                <button
+                  onClick={() => {
+                    setIsSignUp(!isSignUp);
+                    setLoginError('');
+                    form.reset();
+                  }}
+                  className="ml-1 text-accent hover:underline focus:outline-none"
+                >
                   {isSignUp ? 'Sign In' : 'Sign Up'}
                 </button>
               </p>

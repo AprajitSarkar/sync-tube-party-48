@@ -83,8 +83,9 @@ CREATE TRIGGER update_participant_last_activity
 CREATE OR REPLACE FUNCTION cleanup_inactive_rooms()
 RETURNS void AS $$
 BEGIN
-  -- Delete participants inactive for more than 30 minutes
-  DELETE FROM room_participants
+  -- Only mark participants inactive after 30 minutes, don't delete them
+  UPDATE room_participants
+  SET last_active = NOW() - INTERVAL '31 minutes'
   WHERE last_active < NOW() - INTERVAL '30 minutes';
   
   -- Only delete rooms that have no participants and no activity for 24 hours
@@ -121,7 +122,6 @@ CREATE POLICY "Room creators and participants can update rooms"
       SELECT 1 FROM room_participants
       WHERE room_participants.room_id = video_rooms.id
       AND room_participants.user_id = auth.uid()
-      AND room_participants.last_active > NOW() - INTERVAL '30 minutes'
     )
   );
 

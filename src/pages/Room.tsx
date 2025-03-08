@@ -17,6 +17,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import LogToast from '@/components/common/LogToast';
+
 interface RoomDetails {
   id: string;
   name: string;
@@ -28,10 +29,12 @@ interface RoomDetails {
     timestamp: number;
   };
 }
+
 interface SearchResult {
   id: string;
   title: string;
 }
+
 const Room = () => {
   const {
     roomId
@@ -53,11 +56,13 @@ const Room = () => {
   const [logMessage, setLogMessage] = useState('');
   const [logVisible, setLogVisible] = useState(false);
   const [showMyPlaylists, setShowMyPlaylists] = useState(false);
+
   useEffect(() => {
     if (!user || !roomId) {
       navigate('/home');
       return;
     }
+    
     fetchRoomDetails();
 
     // Presence update - record that user is in this room
@@ -65,28 +70,30 @@ const Room = () => {
     const presenceInterval = setInterval(updatePresence, 30000);
 
     // Subscribe to room updates
-    const roomSubscription = supabase.channel(`room:${roomId}`).on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'video_rooms',
-      filter: `id=eq.${roomId}`
-    }, payload => {
-      const updatedRoom = payload.new as RoomDetails;
-      setRoom(updatedRoom);
-      if (updatedRoom.video_state?.videoId) {
-        setCurrentVideoId(updatedRoom.video_state.videoId);
-      }
-    }).subscribe();
+    const roomSubscription = supabase.channel(`room:${roomId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'video_rooms',
+        filter: `id=eq.${roomId}`
+      }, payload => {
+        const updatedRoom = payload.new as RoomDetails;
+        setRoom(updatedRoom);
+        if (updatedRoom.video_state?.videoId) {
+          setCurrentVideoId(updatedRoom.video_state.videoId);
+        }
+      })
+      .subscribe();
+
     return () => {
       clearInterval(presenceInterval);
       roomSubscription.unsubscribe();
-
-      // When user leaves, clean up presence and check if room is empty
-      cleanupPresence();
+      
+      // When user leaves, only update presence, don't cleanup completely
+      leaveRoom();
     };
   }, [roomId, user, navigate]);
 
-  // Add meta tag to disable zoom on mobile
   useEffect(() => {
     const metaViewport = document.querySelector('meta[name="viewport"]');
     if (metaViewport) {
@@ -99,27 +106,35 @@ const Room = () => {
       }
     };
   }, []);
+
   const showLog = (message: string) => {
     setLogMessage(message);
     setLogVisible(true);
   };
+
   const hideLog = () => {
     setLogVisible(false);
   };
+
   const fetchRoomDetails = async () => {
     if (!roomId) return;
     try {
       setIsLoading(true);
       showLog("Loading room details...");
-      const {
-        data,
-        error
-      } = await supabase.from('video_rooms').select('*').eq('id', roomId).single();
+      
+      const { data, error } = await supabase
+        .from('video_rooms')
+        .select('*')
+        .eq('id', roomId)
+        .single();
+        
       if (error) throw error;
+      
       setRoom(data);
       if (data.video_state?.videoId) {
         setCurrentVideoId(data.video_state.videoId);
       }
+      
       showLog("Room details loaded");
     } catch (error) {
       console.error('Error fetching room details:', error);
@@ -134,39 +149,38 @@ const Room = () => {
       setIsLoading(false);
     }
   };
+
   const updatePresence = async () => {
     if (!roomId || !user) return;
     try {
-      await supabase.from('room_participants').upsert({
-        room_id: roomId,
-        user_id: user.id,
-        last_active: new Date().toISOString()
-      });
+      await supabase
+        .from('room_participants')
+        .upsert({
+          room_id: roomId,
+          user_id: user.id,
+          last_active: new Date().toISOString()
+        });
     } catch (error) {
       console.error('Error updating presence:', error);
     }
   };
-  const cleanupPresence = async () => {
+
+  const leaveRoom = async () => {
     if (!roomId || !user) return;
     try {
-      // Remove user from participants
-      await supabase.from('room_participants').delete().eq('room_id', roomId).eq('user_id', user.id);
-
-      // Check if the room is now empty
-      const {
-        data,
-        error
-      } = await supabase.from('room_participants').select('id').eq('room_id', roomId);
-      if (error) throw error;
-
-      // If room is empty, delete it to save storage
-      if (data && data.length === 0) {
-        await supabase.from('video_rooms').delete().eq('id', roomId);
-      }
+      // Just update the user's last active time to show they've left
+      await supabase
+        .from('room_participants')
+        .upsert({
+          room_id: roomId,
+          user_id: user.id,
+          last_active: new Date().toISOString()
+        });
     } catch (error) {
-      console.error('Error cleaning up presence:', error);
+      console.error('Error leaving room:', error);
     }
   };
+
   const handlePlayVideo = (videoId: string) => {
     if (!roomId) return;
     setCurrentVideoId(videoId);
@@ -189,6 +203,7 @@ const Room = () => {
       }
     });
   };
+
   const addToRoomPlaylist = async (videoId: string, title: string) => {
     if (!roomId || !user) return;
     try {
@@ -226,6 +241,7 @@ const Room = () => {
       });
     }
   };
+
   const shareRoom = () => {
     const shareUrl = `${window.location.origin}/room/${roomId}`;
     if (navigator.share) {
@@ -241,6 +257,7 @@ const Room = () => {
       copyToClipboard(shareUrl);
     }
   };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       toast({
@@ -256,6 +273,7 @@ const Room = () => {
       });
     });
   };
+
   const toggleSearch = () => {
     setSearchVisible(!searchVisible);
     if (searchVisible) {
@@ -263,9 +281,11 @@ const Room = () => {
       setSearchQuery('');
     }
   };
+
   const toggleMyPlaylists = () => {
     setShowMyPlaylists(!showMyPlaylists);
   };
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setIsSearching(true);
@@ -306,6 +326,7 @@ const Room = () => {
       setIsSearching(false);
     }
   };
+
   const addToPlaylist = async (videoId: string, title: string) => {
     if (!roomId || !user) return;
     try {
@@ -334,11 +355,13 @@ const Room = () => {
       showLog('Failed to add to playlist');
     }
   };
+
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background">
         <LoadingSpinner size="lg" />
       </div>;
   }
+
   return <PageTransition>
       <div className="min-h-screen bg-background flex flex-col overflow-hidden">
         {/* Log Toast */}
@@ -487,4 +510,5 @@ const Room = () => {
       </div>
     </PageTransition>;
 };
+
 export default Room;

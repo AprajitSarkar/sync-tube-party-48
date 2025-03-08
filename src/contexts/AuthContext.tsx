@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User, Provider } from '@supabase/supabase-js';
@@ -76,7 +77,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        if (error.message.includes('Email not confirmed')) {
+        // Check for specific error messages that indicate email not confirmed
+        if (error.message.includes('Email not confirmed') || 
+            error.message.includes('not confirmed') || 
+            error.message.toLowerCase().includes('verification') ||
+            error.message.toLowerCase().includes('verify')) {
           toast({
             title: "Email not verified",
             description: "Please check your email for the verification link or request a new one.",
@@ -84,12 +89,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
           return { error: 'Email not confirmed' };
         }
-        throw error;
+        
+        // For other errors, just return the error message
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return { error: error.message };
       }
 
       if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully signed in."
+        });
       }
       return { data };
     } catch (error: any) {
