@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -12,30 +11,34 @@ import { motion } from 'framer-motion';
 import { LogIn, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
-
 const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+  email: z.string().email({
+    message: 'Please enter a valid email address'
+  }),
+  password: z.string().min(6, {
+    message: 'Password must be at least 6 characters'
+  }),
   acceptTerms: z.boolean().refine(val => val === true, {
     message: 'You must accept the terms and conditions'
-  }),
+  })
 });
-
 type FormData = z.infer<typeof formSchema>;
-
 const AuthForm = () => {
   const [isSignUp, setIsSignUp] = useState(false);
-  const { signIn, signUp, signInWithGoogle, isLoading } = useAuth();
-  
+  const {
+    signIn,
+    signUp,
+    signInWithGoogle,
+    isLoading
+  } = useAuth();
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: '',
       password: '',
-      acceptTerms: false,
-    },
+      acceptTerms: false
+    }
   });
-
   const onSubmit = async (data: FormData) => {
     if (isSignUp) {
       await signUp(data.email, data.password);
@@ -43,41 +46,30 @@ const AuthForm = () => {
       await signIn(data.email, data.password);
     }
   };
-
   const handleGoogleSignIn = async () => {
     await signInWithGoogle();
   };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-full max-w-md mx-auto px-4"
-    >
+  return <motion.div initial={{
+    opacity: 0,
+    y: 20
+  }} animate={{
+    opacity: 1,
+    y: 0
+  }} transition={{
+    duration: 0.5
+  }} className="w-full max-w-md px-0 py-0 my-0 mx-0">
       <GlassCard className="p-6 sm:p-8">
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold mb-1 text-enhanced">
             {isSignUp ? 'Create Account' : 'Welcome Back'}
           </h2>
           <p className="text-muted-foreground">
-            {isSignUp 
-              ? 'Sign up to start watching together' 
-              : 'Sign in to continue your journey'}
+            {isSignUp ? 'Sign up to start watching together' : 'Sign in to continue your journey'}
           </p>
         </div>
 
-        <CustomButton 
-          type="button" 
-          className="w-full mb-6 flex items-center justify-center gap-2" 
-          variant="outline"
-          onClick={handleGoogleSignIn}
-        >
-          <img 
-            src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png" 
-            alt="Google" 
-            className="w-5 h-5"
-          />
+        <CustomButton type="button" className="w-full mb-6 flex items-center justify-center gap-2" variant="outline" onClick={handleGoogleSignIn}>
+          <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png" alt="Google" className="w-5 h-5" />
           Continue with Google
         </CustomButton>
 
@@ -89,54 +81,31 @@ const AuthForm = () => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
+            <FormField control={form.control} name="email" render={({
+            field
+          }) => <FormItem>
                   <FormLabel className="text-enhanced-muted">Email</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="your@email.com" 
-                      {...field} 
-                      className="h-12 bg-white/5 border-white/20 focus-visible:ring-primary input-glow"
-                    />
+                    <Input placeholder="your@email.com" {...field} className="h-12 bg-white/5 border-white/20 focus-visible:ring-primary input-glow" />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
+                </FormItem>} />
             
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
+            <FormField control={form.control} name="password" render={({
+            field
+          }) => <FormItem>
                   <FormLabel className="text-enhanced-muted">Password</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="password" 
-                      placeholder="••••••••" 
-                      {...field} 
-                      className="h-12 bg-white/5 border-white/20 focus-visible:ring-primary input-glow"
-                    />
+                    <Input type="password" placeholder="••••••••" {...field} className="h-12 bg-white/5 border-white/20 focus-visible:ring-primary input-glow" />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
+                </FormItem>} />
 
-            {isSignUp && (
-              <FormField
-                control={form.control}
-                name="acceptTerms"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+            {isSignUp && <FormField control={form.control} name="acceptTerms" render={({
+            field
+          }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-sm">
@@ -144,29 +113,15 @@ const AuthForm = () => {
                       </FormLabel>
                       <FormMessage />
                     </div>
-                  </FormItem>
-                )}
-              />
-            )}
+                  </FormItem>} />}
 
-            {!isSignUp && (
-              <div className="text-right">
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-accent hover:underline transition-colors"
-                >
+            {!isSignUp && <div className="text-right">
+                <Link to="/forgot-password" className="text-sm text-accent hover:underline transition-colors">
                   Forgot password?
                 </Link>
-              </div>
-            )}
+              </div>}
 
-            <CustomButton 
-              type="submit" 
-              className="w-full mt-6" 
-              isLoading={isLoading}
-              variant="glow"
-              icon={isSignUp ? <UserPlus size={18} /> : <LogIn size={18} />}
-            >
+            <CustomButton type="submit" className="w-full mt-6" isLoading={isLoading} variant="glow" icon={isSignUp ? <UserPlus size={18} /> : <LogIn size={18} />}>
               {isSignUp ? 'Create Account' : 'Sign In'}
             </CustomButton>
           </form>
@@ -175,20 +130,15 @@ const AuthForm = () => {
         <div className="mt-6 text-center">
           <p className="text-sm text-enhanced-muted">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-            <button
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                form.reset();
-              }}
-              className="ml-1 text-accent hover:underline focus:outline-none"
-            >
+            <button onClick={() => {
+            setIsSignUp(!isSignUp);
+            form.reset();
+          }} className="ml-1 text-accent hover:underline focus:outline-none">
               {isSignUp ? 'Sign In' : 'Sign Up'}
             </button>
           </p>
         </div>
       </GlassCard>
-    </motion.div>
-  );
+    </motion.div>;
 };
-
 export default AuthForm;
