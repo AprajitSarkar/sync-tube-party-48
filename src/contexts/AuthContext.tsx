@@ -79,12 +79,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log("Attempting sign in with:", email);
+      
       const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error("Sign in error:", error);
+        
         // Check for specific error messages that indicate email not confirmed
         if (error.message.includes('Email not confirmed') || 
             error.message.includes('not confirmed') || 
@@ -107,6 +111,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: error.message };
       }
 
+      console.log("Sign in successful:", data);
+      
       if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
@@ -117,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return { data };
     } catch (error: any) {
+      console.error("Unexpected sign in error:", error);
       toast({
         title: "Error",
         description: error.message,

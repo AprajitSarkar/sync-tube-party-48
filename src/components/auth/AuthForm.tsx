@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -15,7 +14,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 
-const formSchema = z.object({
+const signInSchema = z.object({
+  email: z.string().email({
+    message: 'Please enter a valid email address'
+  }),
+  password: z.string().min(1, {
+    message: 'Password is required'
+  })
+});
+
+const signUpSchema = z.object({
   email: z.string().email({
     message: 'Please enter a valid email address'
   }),
@@ -27,7 +35,9 @@ const formSchema = z.object({
   })
 });
 
-type FormData = z.infer<typeof formSchema>;
+type SignInFormData = z.infer<typeof signInSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
+type FormData = SignInFormData | SignUpFormData;
 
 const AuthForm = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -46,13 +56,21 @@ const AuthForm = () => {
   } = useAuth();
 
   const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(isSignUp ? signUpSchema : signInSchema),
     defaultValues: {
       email: '',
       password: '',
-      acceptTerms: false
+      ...(isSignUp && { acceptTerms: false })
     }
   });
+
+  useEffect(() => {
+    form.reset({
+      email: '',
+      password: '',
+      ...(isSignUp && { acceptTerms: false })
+    });
+  }, [isSignUp, form]);
 
   const onSubmit = async (data: FormData) => {
     setLoginError('');
@@ -60,7 +78,9 @@ const AuthForm = () => {
     
     try {
       if (isSignUp) {
-        if (!data.acceptTerms) {
+        const signUpData = data as SignUpFormData;
+        
+        if (!signUpData.acceptTerms) {
           toast({
             title: "Terms Required",
             description: "You must accept the terms and conditions to create an account",
@@ -80,10 +100,13 @@ const AuthForm = () => {
             setEmailSent(true);
           } else {
             setLoginError(result.error);
+            console.log("Authentication error:", result.error);
           }
+        } else if (result?.data) {
+          navigate('/home');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth error:', error);
       setLoginError('Authentication failed. Please try again.');
     }
