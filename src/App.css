@@ -1,4 +1,3 @@
-
 #root {
   margin: 0 auto;
   text-align: center;
@@ -102,10 +101,7 @@
   .mobile-chat-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    max-height: calc(100vh - 250px); /* Adjust to cover more space while leaving room for header and input */
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-bottom: 20px;
+    max-height: 60vh;
   }
   
   /* Improve form element spacing */
@@ -149,52 +145,6 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-  }
-
-  /* Mobile chat container - UPDATED */
-  .mobile-chat-container {
-    display: flex;
-    flex-direction: column;
-    height: 40vh; /* Reduce height to 40% of viewport */
-    overflow: hidden;
-  }
-  
-  /* Fix for glass card in mobile chat */
-  .mobile-chat-container .glass-card {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    max-height: 100%;
-    overflow: hidden;
-  }
-  
-  /* Chat header in mobile view */
-  .mobile-chat-header {
-    flex-shrink: 0;
-  }
-  
-  /* Chat input container in mobile view */
-  .mobile-chat-input {
-    flex-shrink: 0;
-    padding: 12px;
-    background-color: rgba(0, 0, 0, 0.2);
-    position: sticky;
-    bottom: 0;
-    width: 100%;
-  }
-
-  /* Updated chat content scroll area */
-  .chat-content-scroll {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Added for tabs content for better chat layout */
-  .tabs-content-chat {
-    height: 40vh;
-    display: flex;
-    flex-direction: column;
   }
 }
 
