@@ -248,42 +248,38 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
         duration={1000}
       />
       
-      <GlassCard className={`flex flex-col ${isMobile ? 'mobile-chat-container' : 'h-full'}`}>
+      <GlassCard className={`flex flex-col ${isMobile ? 'mobile-chat-container h-full' : 'h-full'}`}>
         <div className="p-3 border-b border-white/10 mobile-chat-header">
           <h3 className="font-medium">Chat</h3>
         </div>
         
-        <div className="chat-message-container">
-          <ScrollArea className="chat-scroll-messages">
-            <div className="p-4">
-              {messages.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-muted-foreground">
-                  <p>No messages yet. Say hello!</p>
-                </div>
-              ) : (
-                <div className="flex flex-col">
-                  {messages.map((message) => (
-                    message.type === 'activity' ? (
-                      <div 
-                        key={message.id}
-                        className="text-xs text-muted-foreground text-center my-2 italic"
-                      >
-                        {message.content}
-                      </div>
-                    ) : (
-                      <ChatMessage 
-                        key={message.id} 
-                        message={message} 
-                        currentUser={user}
-                      />
-                    )
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
+        <ScrollArea className="flex-1 p-4 overflow-y-auto mobile-chat-scroll">
+          {messages.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              <p>No messages yet. Say hello!</p>
             </div>
-          </ScrollArea>
-        </div>
+          ) : (
+            <div className="flex flex-col">
+              {messages.map((message) => (
+                message.type === 'activity' ? (
+                  <div 
+                    key={message.id}
+                    className="text-xs text-muted-foreground text-center my-2 italic"
+                  >
+                    {message.content}
+                  </div>
+                ) : (
+                  <ChatMessage 
+                    key={message.id} 
+                    message={message} 
+                    currentUser={user}
+                  />
+                )
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </ScrollArea>
         
         <div className="p-3 border-t border-white/10 mobile-chat-input">
           <div className="flex gap-2">

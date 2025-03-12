@@ -101,10 +101,10 @@
   .mobile-chat-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    flex: 1;
+    max-height: calc(100vh - 250px); /* Adjust to cover more space while leaving room for header and input */
     overflow-y: auto;
     overflow-x: hidden;
-    padding-bottom: 16px;
+    padding-bottom: 20px;
   }
   
   /* Improve form element spacing */
@@ -154,8 +154,7 @@
   .mobile-chat-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    max-height: 100%;
+    height: calc(100vh - 160px);
     overflow: hidden;
   }
   
@@ -181,31 +180,6 @@
     position: sticky;
     bottom: 0;
     width: 100%;
-  }
-
-  /* TabsContent container for mobile chat */
-  .tabs-content-chat {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 160px);
-    max-height: calc(100vh - 160px);
-    overflow: hidden;
-  }
-  
-  /* Added to fix the scroll area on mobile */
-  .chat-message-container {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    overflow: hidden;
-  }
-  
-  /* Make sure chat messages take full height and scroll properly */
-  .chat-scroll-messages {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
   }
 }
 

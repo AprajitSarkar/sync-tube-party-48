@@ -394,17 +394,16 @@ const Room = () => {
         
         {/* Search Bar */}
         <AnimatePresence>
-          {searchVisible && (
-            <motion.div initial={{
-              opacity: 0,
-              height: 0
-            }} animate={{
-              opacity: 1,
-              height: 'auto'
-            }} exit={{
-              opacity: 0,
-              height: 0
-            }} className="w-full overflow-hidden">
+          {searchVisible && <motion.div initial={{
+          opacity: 0,
+          height: 0
+        }} animate={{
+          opacity: 1,
+          height: 'auto'
+        }} exit={{
+          opacity: 0,
+          height: 0
+        }} className="w-full overflow-hidden">
               <div className="bg-[#1E0F38] p-4 border-b border-white/10">
                 <div className="flex gap-2 items-center">
                   <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search YouTube videos..." className="h-10 bg-white/5 border-white/10" onKeyDown={e => e.key === 'Enter' && handleSearch()} autoFocus />
@@ -415,10 +414,10 @@ const Room = () => {
                 
                 {/* Search Results */}
                 {searchResults.length > 0 && <motion.div initial={{
-                  opacity: 0
-                }} animate={{
-                  opacity: 1
-                }} className="mt-4 space-y-2 max-h-60 overflow-y-auto">
+              opacity: 0
+            }} animate={{
+              opacity: 1
+            }} className="mt-4 space-y-2 max-h-60 overflow-y-auto">
                     {searchResults.map(result => <div key={result.id} className="bg-black/20 backdrop-blur-sm rounded-md p-2 flex items-center gap-2">
                         <img src={`https://i.ytimg.com/vi/${result.id}/default.jpg`} alt={result.title} className="w-16 h-12 object-cover rounded" />
                         <div className="flex-1 truncate">
@@ -435,28 +434,25 @@ const Room = () => {
                       </div>)}
                   </motion.div>}
               </div>
-            </motion.div>
-          )}
+            </motion.div>}
         </AnimatePresence>
         
         {/* My Playlists Panel */}
         <AnimatePresence>
-          {showMyPlaylists && (
-            <motion.div initial={{
-              opacity: 0,
-              height: 0
-            }} animate={{
-              opacity: 1,
-              height: 'auto'
-            }} exit={{
-              opacity: 0,
-              height: 0
-            }} className="w-full overflow-hidden">
+          {showMyPlaylists && <motion.div initial={{
+          opacity: 0,
+          height: 0
+        }} animate={{
+          opacity: 1,
+          height: 'auto'
+        }} exit={{
+          opacity: 0,
+          height: 0
+        }} className="w-full overflow-hidden">
               <div className="bg-[#1E0F38] p-4 border-b border-white/10">
                 <UserPlaylists onPlayVideo={handlePlayVideo} onAddToRoomPlaylist={addToRoomPlaylist} />
               </div>
-            </motion.div>
-          )}
+            </motion.div>}
         </AnimatePresence>
         
         {/* Video Player */}
@@ -465,8 +461,7 @@ const Room = () => {
         </div>
         
         {/* Mobile Tabs for Playlist, Chat, and Users */}
-        {isMobile ? (
-          <div className="flex-1 overflow-hidden">
+        {isMobile ? <div className="flex-1 overflow-hidden">
             <Tabs defaultValue="playlist" className="h-full flex flex-col">
               <TabsList className="grid grid-cols-3 bg-[#1E0F38] border-t border-b border-white/10">
                 <TabsTrigger value="playlist" className="text-sm font-medium">
@@ -484,8 +479,10 @@ const Room = () => {
                   <PlaylistPanel roomId={roomId || ''} currentVideoId={currentVideoId} onPlayVideo={handlePlayVideo} />
                 </div>
               </TabsContent>
-              <TabsContent value="chat" className="tabs-content-chat flex-1 p-0 m-0">
-                <ChatPanel roomId={roomId || ''} />
+              <TabsContent value="chat" className="flex-1 overflow-hidden p-0 m-0">
+                <div className="h-full">
+                  <ChatPanel roomId={roomId || ''} />
+                </div>
               </TabsContent>
               <TabsContent value="users" className="flex-1 overflow-hidden p-0 m-0">
                 <div className="h-full">
@@ -493,9 +490,9 @@ const Room = () => {
                 </div>
               </TabsContent>
             </Tabs>
-          </div>
-        ) : (
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 p-4">
+          </div> :
+      // Desktop Layout
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 p-4">
             <div className="lg:col-span-3 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="h-[400px]">
@@ -509,8 +506,7 @@ const Room = () => {
             <div className="lg:col-span-1">
               <RoomParticipants roomId={roomId || ''} currentUserId={user?.id || ''} />
             </div>
-          </div>
-        )}
+          </div>}
       </div>
     </PageTransition>;
 };
