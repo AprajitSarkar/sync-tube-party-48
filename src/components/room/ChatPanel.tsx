@@ -9,6 +9,7 @@ import ChatMessage from './ChatMessage';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
 import LogToast from '@/components/common/LogToast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ChatPanelProps {
   roomId: string;
@@ -33,6 +34,7 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [logMessage, setLogMessage] = useState('');
   const [logVisible, setLogVisible] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchMessages();
@@ -246,12 +248,12 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
         duration={1000}
       />
       
-      <GlassCard className="flex flex-col h-full">
+      <GlassCard className={`flex flex-col ${isMobile ? 'mobile-chat-container' : 'h-full'}`}>
         <div className="p-3 border-b border-white/10">
           <h3 className="font-medium">Chat</h3>
         </div>
         
-        <ScrollArea className="flex-1 p-4 overflow-y-auto mobile-chat-scroll">
+        <ScrollArea className={`flex-1 p-4 overflow-y-auto ${isMobile ? 'mobile-chat-scroll' : ''}`}>
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <p>No messages yet. Say hello!</p>

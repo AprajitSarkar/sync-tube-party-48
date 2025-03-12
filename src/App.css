@@ -1,3 +1,4 @@
+
 #root {
   margin: 0 auto;
   text-align: center;
@@ -97,11 +98,27 @@
     min-height: 0;  /* Allow flex containers to shrink */
   }
   
-  /* Mobile chat scroll fix */
+  /* Mobile chat container - fixed height */
+  .mobile-chat-container {
+    height: 40vh !important; /* Fixed height on mobile */
+    max-height: 40vh !important;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Mobile chat scroll area */
   .mobile-chat-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    max-height: 60vh;
+    flex: 1;
+    overflow-y: auto;
+  }
+  
+  /* Mobile chat content area */
+  .mobile-chat-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
   }
   
   /* Improve form element spacing */
