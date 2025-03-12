@@ -101,10 +101,10 @@
   .mobile-chat-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    max-height: calc(100vh - 250px); /* Adjust to cover more space while leaving room for header and input */
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-bottom: 20px;
+    padding-bottom: 16px;
   }
   
   /* Improve form element spacing */
@@ -154,7 +154,7 @@
   .mobile-chat-container {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 160px);
+    height: 100%;
     overflow: hidden;
   }
   
@@ -180,6 +180,14 @@
     position: sticky;
     bottom: 0;
     width: 100%;
+  }
+
+  /* TabsContent container for mobile chat */
+  .tabs-content-chat {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 160px);
+    overflow: hidden;
   }
 }
 
