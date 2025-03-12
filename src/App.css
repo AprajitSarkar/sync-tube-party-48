@@ -103,6 +103,9 @@
     max-height: 40vh !important;
     display: flex;
     flex-direction: column;
+    background-color: #342F44;
+    border-radius: 12px;
+    overflow: hidden;
   }
   
   /* Mobile chat scroll area */
@@ -118,6 +121,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    background-color: #342F44;
   }
   
   /* Improve form element spacing */

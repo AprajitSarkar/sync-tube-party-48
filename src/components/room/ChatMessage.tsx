@@ -2,7 +2,6 @@
 import React from 'react';
 import { User } from '@supabase/supabase-js';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { GlassCard } from '@/components/ui/glass-card';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -25,9 +24,16 @@ const ChatMessage = ({ message, currentUser }: ChatMessageProps) => {
 
   // Generate random but consistent color based on user_id
   const getColorFromUserId = (userId: string) => {
+    const colors = [
+      '#5B68DF', // Blue
+      '#D259A1', // Pink
+      '#FF7A50', // Orange
+      '#61C454', // Green
+      '#8A5CF5', // Purple
+    ];
+    
     const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const hue = hash % 360;
-    return `hsl(${hue}, 70%, 60%)`;
+    return colors[hash % colors.length];
   };
 
   const userColor = getColorFromUserId(message.user_id);
@@ -36,34 +42,28 @@ const ChatMessage = ({ message, currentUser }: ChatMessageProps) => {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex gap-3 mb-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+      className="mb-5 relative"
     >
-      {!isCurrentUser && (
-        <Avatar className="w-8 h-8">
-          <AvatarFallback style={{ backgroundColor: userColor }}>
+      <div className="flex items-start gap-3">
+        <Avatar className="w-10 h-10 flex-shrink-0">
+          <AvatarFallback style={{ backgroundColor: userColor, color: 'white' }}>
             {userInitial}
           </AvatarFallback>
         </Avatar>
-      )}
-      
-      <div className={`max-w-[75%] flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-        <GlassCard 
-          className={`p-3 ${isCurrentUser ? 'bg-accent/20' : 'bg-white/10'}`}
-          withBorder={true}
-          padding="none"
-        >
-          <p className="text-sm">{message.content}</p>
-        </GlassCard>
-        <span className="text-xs text-muted-foreground mt-1">{messageTime}</span>
+        
+        <div className="flex flex-col">
+          <div className="flex items-baseline gap-2">
+            <span className="font-medium text-sm text-white">
+              {isCurrentUser ? 'You' : (message.user_email?.split('@')[0] || 'Anonymous')}
+            </span>
+            <span className="text-xs text-gray-400">{messageTime}</span>
+          </div>
+          
+          <div className="text-sm bg-transparent text-white mt-1 max-w-[250px]">
+            {message.content}
+          </div>
+        </div>
       </div>
-      
-      {isCurrentUser && (
-        <Avatar className="w-8 h-8">
-          <AvatarFallback style={{ backgroundColor: userColor }}>
-            {userInitial}
-          </AvatarFallback>
-        </Avatar>
-      )}
     </motion.div>
   );
 };

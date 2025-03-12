@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Input } from '@/components/ui/input';
@@ -249,11 +250,11 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
       />
       
       <GlassCard className={`flex flex-col ${isMobile ? 'mobile-chat-container' : 'h-full'}`}>
-        <div className="p-3 border-b border-white/10">
-          <h3 className="font-medium">Chat</h3>
+        <div className="p-3 border-b border-white/10 bg-[#342F44]">
+          <h3 className="font-medium text-white">Chat</h3>
         </div>
         
-        <ScrollArea className={`flex-1 p-4 ${isMobile ? 'mobile-chat-scroll' : 'overflow-y-auto'}`}>
+        <ScrollArea className={`flex-1 p-4 ${isMobile ? 'mobile-chat-scroll' : 'overflow-y-auto'} bg-[#342F44]`}>
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <p>No messages yet. Say hello!</p>
@@ -281,19 +282,21 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
           )}
         </ScrollArea>
         
-        <div className="p-3 border-t border-white/10">
+        <div className="p-3 border-t border-white/10 bg-[#342F44]">
           <div className="flex gap-2">
-            <Input
-              placeholder="Type a message..."
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="h-10 bg-white/5 border-white/10"
-              disabled={isSending}
-            />
+            <div className="flex-1 rounded-full bg-[#423C52] overflow-hidden">
+              <Input
+                placeholder="Type a message..."
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="h-10 bg-transparent border-none rounded-full focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-[#8E9196]"
+                disabled={isSending}
+              />
+            </div>
             <CustomButton
-              size="sm"
-              variant="glow"
+              size="icon"
+              className="rounded-full bg-[#D259A1] hover:bg-[#BD4C8D] h-10 w-10 flex items-center justify-center"
               onClick={sendMessage}
               disabled={!inputMessage.trim() || isSending}
               isLoading={isSending}
