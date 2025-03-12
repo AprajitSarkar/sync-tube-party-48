@@ -1,3 +1,4 @@
+
 #root {
   margin: 0 auto;
   text-align: center;
@@ -150,11 +151,11 @@
     text-align: center;
   }
 
-  /* Mobile chat container */
+  /* Mobile chat container - UPDATED */
   .mobile-chat-container {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 160px);
+    height: 40vh; /* Reduce height to 40% of viewport */
     overflow: hidden;
   }
   
@@ -180,6 +181,20 @@
     position: sticky;
     bottom: 0;
     width: 100%;
+  }
+
+  /* Updated chat content scroll area */
+  .chat-content-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Added for tabs content for better chat layout */
+  .tabs-content-chat {
+    height: 40vh;
+    display: flex;
+    flex-direction: column;
   }
 }
 

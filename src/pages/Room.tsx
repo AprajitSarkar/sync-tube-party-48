@@ -479,7 +479,7 @@ const Room = () => {
                   <PlaylistPanel roomId={roomId || ''} currentVideoId={currentVideoId} onPlayVideo={handlePlayVideo} />
                 </div>
               </TabsContent>
-              <TabsContent value="chat" className="flex-1 overflow-hidden p-0 m-0">
+              <TabsContent value="chat" className="flex-1 overflow-hidden p-0 m-0 tabs-content-chat">
                 <div className="h-full">
                   <ChatPanel roomId={roomId || ''} />
                 </div>
