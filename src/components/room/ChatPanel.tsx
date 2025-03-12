@@ -253,7 +253,7 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
           <h3 className="font-medium">Chat</h3>
         </div>
         
-        <ScrollArea className={`flex-1 p-4 overflow-y-auto ${isMobile ? 'mobile-chat-scroll' : ''}`}>
+        <ScrollArea className={`flex-1 p-4 ${isMobile ? 'mobile-chat-scroll' : 'overflow-y-auto'}`}>
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <p>No messages yet. Say hello!</p>
