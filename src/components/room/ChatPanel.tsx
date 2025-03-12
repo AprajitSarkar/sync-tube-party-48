@@ -9,6 +9,7 @@ import ChatMessage from './ChatMessage';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
 import LogToast from '@/components/common/LogToast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ChatPanelProps {
   roomId: string;
@@ -33,6 +34,7 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [logMessage, setLogMessage] = useState('');
   const [logVisible, setLogVisible] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchMessages();
@@ -246,8 +248,8 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
         duration={1000}
       />
       
-      <GlassCard className="flex flex-col h-full">
-        <div className="p-3 border-b border-white/10">
+      <GlassCard className={`flex flex-col ${isMobile ? 'mobile-chat-container h-full' : 'h-full'}`}>
+        <div className="p-3 border-b border-white/10 mobile-chat-header">
           <h3 className="font-medium">Chat</h3>
         </div>
         
@@ -279,7 +281,7 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
           )}
         </ScrollArea>
         
-        <div className="p-3 border-t border-white/10">
+        <div className="p-3 border-t border-white/10 mobile-chat-input">
           <div className="flex gap-2">
             <Input
               placeholder="Type a message..."
