@@ -253,33 +253,37 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
           <h3 className="font-medium">Chat</h3>
         </div>
         
-        <ScrollArea className="flex-1 p-4 mobile-chat-scroll">
-          {messages.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
-              <p>No messages yet. Say hello!</p>
+        <div className="chat-message-container">
+          <ScrollArea className="chat-scroll-messages">
+            <div className="p-4">
+              {messages.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  <p>No messages yet. Say hello!</p>
+                </div>
+              ) : (
+                <div className="flex flex-col">
+                  {messages.map((message) => (
+                    message.type === 'activity' ? (
+                      <div 
+                        key={message.id}
+                        className="text-xs text-muted-foreground text-center my-2 italic"
+                      >
+                        {message.content}
+                      </div>
+                    ) : (
+                      <ChatMessage 
+                        key={message.id} 
+                        message={message} 
+                        currentUser={user}
+                      />
+                    )
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex flex-col">
-              {messages.map((message) => (
-                message.type === 'activity' ? (
-                  <div 
-                    key={message.id}
-                    className="text-xs text-muted-foreground text-center my-2 italic"
-                  >
-                    {message.content}
-                  </div>
-                ) : (
-                  <ChatMessage 
-                    key={message.id} 
-                    message={message} 
-                    currentUser={user}
-                  />
-                )
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </ScrollArea>
+          </ScrollArea>
+        </div>
         
         <div className="p-3 border-t border-white/10 mobile-chat-input">
           <div className="flex gap-2">
