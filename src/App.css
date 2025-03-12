@@ -97,6 +97,13 @@
     min-height: 0;  /* Allow flex containers to shrink */
   }
   
+  /* Mobile chat scroll fix */
+  .mobile-chat-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    max-height: 60vh;
+  }
+  
   /* Improve form element spacing */
   .space-y-6 > * {
     margin-bottom: 1rem !important;

@@ -225,7 +225,9 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -249,7 +251,7 @@ const ChatPanel = ({ roomId }: ChatPanelProps) => {
           <h3 className="font-medium">Chat</h3>
         </div>
         
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4 overflow-y-auto mobile-chat-scroll">
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <p>No messages yet. Say hello!</p>
