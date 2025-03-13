@@ -1,9 +1,0 @@
-
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.multiple.cozmo",
-    "sha256_cert_fingerprints": ["C4:1C:03:0A:27:E0:7B:5F:65:9D:5B:C5:77:13:0D:62:DA:71:23:23:41:E0:C8:05:E2:E6:23:A9:31:5C:DC:7E"]
-  }
-}]
