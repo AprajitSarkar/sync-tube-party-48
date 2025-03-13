@@ -1,8 +1,9 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User, Provider } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
+import { auth, googleProvider, signInWithRedirect, getRedirectResult } from '@/lib/firebase';
+import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
 
 interface AuthContextType {
   session: Session | null;
@@ -11,23 +12,33 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ data?: any, error?: string }>;
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithFirebase: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
   resendConfirmationEmail: (email: string) => Promise<void>;
   isEmailVerified: () => boolean;
+  isAndroid: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const isRunningOnAndroid = (): boolean => {
+  return window.navigator.userAgent.includes('Android') && 
+         window.location.href.includes('intent://');
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAndroid, setIsAndroid] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
+    setIsAndroid(isRunningOnAndroid());
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -42,7 +53,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    const unsubscribeFirebase = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        if (!user) {
+          console.log("Firebase user signed in:", firebaseUser.email);
+        }
+      }
+    });
+
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        toast({
+          title: "Firebase Sign In Successful",
+          description: `Welcome ${result.user.displayName || result.user.email}`
+        });
+      }
+    }).catch((error) => {
+      if (error.code !== 'auth/cancelled-popup-request') {
+        toast({
+          title: "Firebase Sign In Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      unsubscribeFirebase();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
@@ -55,11 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
       
-      // Auto-login after signup even without verification
       if (data.user) {
         setUser(data.user);
         
-        // Only show toast if we successfully signed in
         toast({
           title: "Account created!",
           description: "Please check your email for the verification link to get full access."
@@ -89,7 +126,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.error("Sign in error:", error);
         
-        // Check for specific error messages that indicate email not confirmed
         if (error.message.includes('Email not confirmed') || 
             error.message.includes('not confirmed') || 
             error.message.toLowerCase().includes('verification') ||
@@ -102,7 +138,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { error: 'Email not confirmed' };
         }
         
-        // For other errors, just return the error message
         toast({
           title: "Login failed",
           description: error.message,
@@ -157,9 +192,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithFirebase = async () => {
+    try {
+      setIsLoading(true);
+      
+      if (isAndroid) {
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        const result = await signInWithPopup(auth, googleProvider);
+        toast({
+          title: "Firebase Sign In Successful",
+          description: `Welcome ${result.user.displayName || result.user.email}`
+        });
+      }
+    } catch (error: any) {
+      if (error.code !== 'auth/cancelled-popup-request') {
+        toast({
+          title: "Firebase Sign In Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const signOut = async () => {
     try {
       setIsLoading(true);
+      
+      await firebaseSignOut(auth);
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (error: any) {
@@ -271,7 +335,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Added helper method to check if email is verified
   const isEmailVerified = () => {
     if (!user) return false;
     return user.email_confirmed_at !== null;
@@ -281,10 +344,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{ 
       session, 
       user, 
-      isLoading, 
+      isLoading,
+      isAndroid, 
       signIn, 
       signUp, 
       signInWithGoogle,
+      signInWithFirebase,
       signOut,
       resetPassword,
       updatePassword,

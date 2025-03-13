@@ -51,8 +51,10 @@ const AuthForm = () => {
     signIn,
     signUp,
     signInWithGoogle,
+    signInWithFirebase,
     isLoading,
-    resendConfirmationEmail
+    resendConfirmationEmail,
+    isAndroid
   } = useAuth();
 
   const form = useForm<FormData>({
@@ -122,7 +124,11 @@ const AuthForm = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    await signInWithGoogle();
+    if (isAndroid) {
+      await signInWithFirebase();
+    } else {
+      await signInWithGoogle();
+    }
   };
 
   return (
@@ -166,7 +172,7 @@ const AuthForm = () => {
               onClick={handleGoogleSignIn}
             >
               <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png" alt="Google" className="w-5 h-5" />
-              Continue with Google
+              {isAndroid ? "Sign in with Firebase" : "Continue with Google"}
             </CustomButton>
 
             <div className="flex items-center mb-6">

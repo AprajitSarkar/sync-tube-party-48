@@ -1,16 +1,46 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import AuthForm from '@/components/auth/AuthForm';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { auth, getRedirectResult } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
   const {
     user,
     isLoading
   } = useAuth();
+  const location = useLocation();
+  const { toast } = useToast();
+  
+  // Handle Firebase redirect authentication on component mount
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          toast({
+            title: "Firebase Login Successful",
+            description: `Welcome back, ${result.user.displayName || result.user.email}!`
+          });
+        }
+      } catch (error: any) {
+        console.error("Firebase redirect error:", error);
+        if (error.code !== 'auth/cancelled-popup-request') {
+          toast({
+            title: "Login Failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
+      }
+    };
+
+    checkRedirectResult();
+  }, []);
   
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background">
