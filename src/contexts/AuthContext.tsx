@@ -1,7 +1,6 @@
-
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Session, User, Provider } from '@supabase/supabase-js';
+import { Session, User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -135,13 +134,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Check if we're in the Android app environment
+      const isAndroidApp = window.location.href.includes('source=android');
+      
+      // Set the redirect URL based on environment
+      // When in Android app, we want to redirect back to a deep link that the app can handle
+      const redirectTo = isAndroidApp 
+        ? `com.multiple.cozmo://auth/callback` 
+        : `${window.location.origin}/home`;
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/home`
+          redirectTo
         }
       });
       
@@ -155,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   const signOut = async () => {
     try {

@@ -1,16 +1,32 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import AuthForm from '@/components/auth/AuthForm';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const Auth = () => {
   const {
     user,
-    isLoading
+    isLoading,
+    signInWithGoogle
   } = useAuth();
+  
+  const location = useLocation();
+  
+  // Handle deep linking from Android app
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const source = searchParams.get('source');
+    const googleAuth = searchParams.get('googleAuth');
+    
+    // Check if coming from the Android app with Google Auth intent
+    if (source === 'android' && googleAuth === 'true') {
+      // Trigger Google Auth in the web app
+      signInWithGoogle();
+    }
+  }, [location.search, signInWithGoogle]);
   
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background">

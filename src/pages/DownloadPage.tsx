@@ -1,13 +1,38 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Smartphone, ExternalLink, Download as DownloadIcon, ArrowLeft, Globe } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import PageTransition from '@/components/common/PageTransition';
 
 const DownloadPage = () => {
+  const location = useLocation();
+
+  const openAndroidApp = (event: React.MouseEvent) => {
+    event.preventDefault();
+    
+    // Intent URL for direct app opening with fallback
+    const appUrl = "intent://watchtube.fun/#Intent;scheme=https;package=com.multiple.cozmo;S.browser_fallback_url=https://play.google.com/store/apps/details?id=com.multiple.cozmo;end";
+    
+    // For browsers that don't support Intent URLs (iOS), offer a simple redirect
+    const simpleIntentUrl = "watchtube://open";
+    
+    try {
+      // Try to open the app using the Intent URL (works best on Android)
+      window.location.href = appUrl;
+      
+      // Set a timeout as a fallback in case the app isn't installed
+      // This isn't needed for Intent URLs as they handle fallbacks internally
+    } catch (error) {
+      console.error("Error opening app:", error);
+      
+      // If Intent URL fails, try the simple URL scheme
+      window.location.href = simpleIntentUrl;
+    }
+  };
+
   return (
     <PageTransition>
       <div className="min-h-screen py-12 px-4 md:px-8">
@@ -45,10 +70,10 @@ const DownloadPage = () => {
                     Download the WatchTube mobile app for a seamless experience on your smartphone or tablet.
                   </p>
                   <div className="mt-auto flex flex-col gap-4">
-                    <a href="https://play.google.com/store/apps/details?id=com.multiple.cozmo" target="_blank" rel="noopener noreferrer">
+                    <a href="#" onClick={openAndroidApp}>
                       <CustomButton variant="glow" className="w-full">
                         <DownloadIcon size={18} />
-                        Google Play Store
+                        Open Android App
                       </CustomButton>
                     </a>
                     <div className="w-full">
