@@ -6,8 +6,56 @@ import { Smartphone, ExternalLink, Download as DownloadIcon, ArrowLeft, Globe } 
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import PageTransition from '@/components/common/PageTransition';
+import { toast } from '@/hooks/use-toast';
 
 const DownloadPage = () => {
+  const tryOpenAndroidApp = () => {
+    // The intent URL for the Android app
+    const appUrl = 'intent://watchtube.fun/#Intent;scheme=https;package=com.multiple.cozmo;end';
+    const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.multiple.cozmo';
+    
+    // Create a hidden iframe to try opening the app
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    
+    // Set a timeout to redirect to Play Store if app isn't installed
+    const timeoutId = setTimeout(() => {
+      window.location.href = playStoreUrl;
+    }, 2000);
+
+    // Listen for the iframe to load, which means the app didn't open
+    iframe.onload = () => {
+      clearTimeout(timeoutId);
+      // If we got here, app isn't installed - redirect to Play Store
+      window.location.href = playStoreUrl;
+    };
+
+    // Try to open the app
+    document.body.appendChild(iframe);
+    iframe.src = appUrl;
+
+    // Handle errors gracefully
+    window.addEventListener('error', () => {
+      clearTimeout(timeoutId);
+      document.body.removeChild(iframe);
+      toast({
+        title: "App Not Found",
+        description: "Redirecting to download page...",
+        variant: "default"
+      });
+    });
+  };
+
+  const handleAndroidAction = () => {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    
+    if (isAndroid) {
+      tryOpenAndroidApp();
+    } else {
+      window.open('https://play.google.com/store/apps/details?id=com.multiple.cozmo', '_blank');
+    }
+  };
+
   return (
     <PageTransition>
       <div className="min-h-screen py-12 px-4 md:px-8">
@@ -45,12 +93,14 @@ const DownloadPage = () => {
                     Download the WatchTube mobile app for a seamless experience on your smartphone or tablet.
                   </p>
                   <div className="mt-auto flex flex-col gap-4">
-                    <a href="https://play.google.com/store/apps/details?id=com.multiple.cozmo" target="_blank" rel="noopener noreferrer">
-                      <CustomButton variant="glow" className="w-full">
-                        <DownloadIcon size={18} />
-                        Google Play Store
-                      </CustomButton>
-                    </a>
+                    <CustomButton 
+                      variant="glow" 
+                      className="w-full" 
+                      onClick={handleAndroidAction}
+                    >
+                      <DownloadIcon size={18} />
+                      {/Android/i.test(navigator.userAgent) ? 'Open or Install App' : 'Google Play Store'}
+                    </CustomButton>
                     <div className="w-full">
                       <CustomButton variant="outline" className="w-full" disabled>
                         <DownloadIcon size={18} />

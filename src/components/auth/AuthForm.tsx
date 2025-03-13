@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -9,7 +10,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { LogIn, UserPlus, Send } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
@@ -46,6 +47,7 @@ const AuthForm = () => {
   const [loginError, setLoginError] = useState('');
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   
   const {
     signIn,
@@ -63,6 +65,41 @@ const AuthForm = () => {
       ...(isSignUp && { acceptTerms: false })
     }
   });
+
+  // Check for Android app deep link intent
+  useEffect(() => {
+    // Check if we have a token parameter in the URL (from Android app)
+    const params = new URLSearchParams(location.search);
+    const googleToken = params.get('googleToken');
+    
+    if (googleToken) {
+      // Handle the Google token from Android app
+      handleAndroidGoogleSignIn(googleToken);
+    }
+  }, [location]);
+
+  const handleAndroidGoogleSignIn = async (token: string) => {
+    try {
+      // Use the token with your authentication system
+      // This would depend on how your backend handles tokens
+      const result = await signInWithGoogle(token);
+      if (!result?.error) {
+        navigate('/home');
+        toast({
+          title: "Welcome!",
+          description: "Successfully signed in with Google from Android app",
+          variant: "default"
+        });
+      }
+    } catch (error) {
+      console.error("Error with Android Google Sign-in:", error);
+      toast({
+        title: "Authentication Error",
+        description: "Could not authenticate with Google. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   useEffect(() => {
     form.reset({
