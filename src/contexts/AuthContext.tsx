@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User, Provider } from '@supabase/supabase-js';
@@ -270,6 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Added helper method to check if email is verified
   const isEmailVerified = () => {
     if (!user) return false;
     return user.email_confirmed_at !== null;

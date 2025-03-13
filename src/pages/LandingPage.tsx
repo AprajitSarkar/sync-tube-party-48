@@ -1,72 +1,12 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Play, Users, Download, Music } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
-import { toast } from '@/hooks/use-toast';
 
 const LandingPage = () => {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check if running on Android
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    
-    if (isAndroid) {
-      // Try to open the app if installed
-      tryOpenAndroidApp();
-    }
-  }, []);
-
-  const tryOpenAndroidApp = () => {
-    // The intent URL for the Android app
-    const appUrl = 'intent://watchtube.fun/#Intent;scheme=https;package=com.multiple.cozmo;end';
-    const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.multiple.cozmo';
-    const webFallbackUrl = window.location.href;
-    
-    // Create a hidden iframe to try opening the app
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    
-    // Set a timeout to redirect to Play Store if app isn't installed
-    const timeoutId = setTimeout(() => {
-      window.location.href = playStoreUrl;
-    }, 2000);
-
-    // Listen for the iframe to load, which means the app didn't open
-    iframe.onload = () => {
-      clearTimeout(timeoutId);
-      // If we got here, app isn't installed - redirect to Play Store
-      window.location.href = playStoreUrl;
-    };
-
-    // Try to open the app
-    document.body.appendChild(iframe);
-    iframe.src = appUrl;
-
-    // Handle errors gracefully
-    window.addEventListener('error', () => {
-      clearTimeout(timeoutId);
-      document.body.removeChild(iframe);
-      // Stay on the web version
-    });
-  };
-
-  const openAndroidApp = () => {
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    
-    if (isAndroid) {
-      tryOpenAndroidApp();
-    } else {
-      toast({
-        title: "Mobile App",
-        description: "Download our Android app from the Play Store for the best experience!",
-        variant: "default"
-      });
-      navigate('/download');
-    }
-  };
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
@@ -153,10 +93,10 @@ const LandingPage = () => {
             <CustomButton 
               variant="outline" 
               size="lg"
-              onClick={openAndroidApp}
+              onClick={() => navigate('/download')}
               icon={<Download size={20} />}
             >
-              Open App
+              Download App
             </CustomButton>
           </div>
         </motion.div>
@@ -280,10 +220,10 @@ const LandingPage = () => {
             <CustomButton 
               variant="outline" 
               size="lg"
-              onClick={openAndroidApp}
+              onClick={() => navigate('/download')}
               className="px-10"
             >
-              Open App
+              Download
             </CustomButton>
           </div>
         </motion.div>
