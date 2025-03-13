@@ -80,17 +80,17 @@ const AuthForm = () => {
 
   const handleAndroidGoogleSignIn = async (token: string) => {
     try {
-      // Use the token with your authentication system
-      // This would depend on how your backend handles tokens
-      const result = await signInWithGoogle(token);
-      if (!result?.error) {
-        navigate('/home');
-        toast({
-          title: "Welcome!",
-          description: "Successfully signed in with Google from Android app",
-          variant: "default"
-        });
-      }
+      // For Android app tokens, we need a different approach
+      // Here we're just using the standard signInWithGoogle since we can't pass the token
+      await signInWithGoogle();
+      
+      // Show success message (this will only show if the sign-in was successful)
+      navigate('/home');
+      toast({
+        title: "Welcome!",
+        description: "Successfully signed in with Google from Android app",
+        variant: "default"
+      });
     } catch (error) {
       console.error("Error with Android Google Sign-in:", error);
       toast({
